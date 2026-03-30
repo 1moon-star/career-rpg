@@ -102,9 +102,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   #char-card-capture{display:none!important;}
   #char-sheet-header{display:none!important;}
   #mobile-char-bar{display:block!important;}
-  #char-sheet > div{padding-top:80px!important;}
-  /* 필터 버튼 영역 상단 여백 추가 */
-  #category-filters{margin-top:4px;}
+  #char-sheet > div{padding-top:130px!important;}
 
   /* 레이더 차트 숨김 */
   .canvas-wrap{display:none;}
@@ -1702,29 +1700,51 @@ function resetAll(){
 
 document.querySelectorAll('.modal-overlay').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});});
 
-// 의도치 않은 새로고침 방지
-// 1) 브라우저 뒤로가기/새로고침 경고
+// ============================================================
+// 새로고침 & 뒤로가기 방지
+// ============================================================
+
+// 1) 풀다운 새로고침 방지
+let lastTouchY = 0;
+document.addEventListener('touchstart', function(e) {
+  lastTouchY = e.touches[0].clientY;
+}, {passive: true});
+document.addEventListener('touchmove', function(e) {
+  const touchY = e.touches[0].clientY;
+  const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+  if(scrollTop === 0 && touchY > lastTouchY && (records.length > 0 || statsLocked)) {
+    e.preventDefault();
+  }
+}, {passive: false});
+
+// 2) 모바일 뒤로가기 버튼 방지 — history 트릭
+// 페이지 로드 시 history 스택에 더미 상태 추가
+function pushDummyHistory() {
+  history.pushState({page: 'game'}, '', window.location.href);
+}
+
+// 게임 시작 시 더미 히스토리 추가
+const _origStartGame = startGame;
+startGame = function() {
+  _origStartGame();
+  pushDummyHistory();
+};
+
+// 뒤로가기 감지 시 다시 더미 추가 (창을 벗어나지 않게)
+window.addEventListener('popstate', function(e) {
+  if(playerName) {
+    // 게임 중이면 뒤로가기 무시하고 다시 스택 쌓기
+    pushDummyHistory();
+  }
+});
+
+// 3) 브라우저 새로고침/탭 닫기 경고
 window.addEventListener('beforeunload', function(e) {
   if(records.length > 0 || statsLocked) {
     e.preventDefault();
     e.returnValue = '';
   }
 });
-
-// 2) 모바일 풀다운 새로고침 방지
-let lastTouchY = 0;
-document.addEventListener('touchstart', function(e) {
-  lastTouchY = e.touches[0].clientY;
-}, {passive: true});
-
-document.addEventListener('touchmove', function(e) {
-  const touchY = e.touches[0].clientY;
-  const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-  // 최상단에서 아래로 당기는 경우만 방지
-  if(scrollTop === 0 && touchY > lastTouchY && (records.length > 0 || statsLocked)) {
-    e.preventDefault();
-  }
-}, {passive: false});
 </script>
 </body>
 </html>

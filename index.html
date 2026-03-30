@@ -1406,6 +1406,8 @@ function saveCharImage() {
   btn.textContent = '⏳ 저장 중...';
   btn.disabled = true;
 
+  // 폰트 로드 완료 후 실행
+  const doSave = () => {
   const W = 420, PAD = 28;
   const cls = getClass();
 
@@ -1452,21 +1454,21 @@ function saveCharImage() {
   y += 64;
 
   // 이름
-  ctx.font = 'bold 20px "Noto Sans KR", sans-serif';
+  ctx.font = 'bold 20px sans-serif';
   ctx.fillStyle = '#ffd700';
   ctx.textAlign = 'center';
   ctx.fillText(playerName, W/2, y + 20);
   y += 28;
 
   // 클래스명
-  ctx.font = 'bold 13px "Noto Sans KR", sans-serif';
+  ctx.font = 'bold 13px sans-serif';
   ctx.fillStyle = '#5cf0fc';
   ctx.fillText(cls.cls, W/2, y + 14);
   y += 22;
 
   // 생활습관 버프
   if(selectedBuffs.length > 0) {
-    ctx.font = '11px "Noto Sans KR", sans-serif';
+    ctx.font = '11px sans-serif';
     ctx.fillStyle = '#9090b8';
     const buffLabels = selectedBuffs.map(id => {
       const b = BUFFS.find(x=>x.id===id);
@@ -1499,7 +1501,7 @@ function saveCharImage() {
     const val = stats[s.key] || 0;
     const barW = W - PAD*2 - 60 - 36;
 
-    ctx.font = '9px "Press Start 2P", monospace';
+    ctx.font = 'bold 9px monospace';
     ctx.fillStyle = '#9090b8';
     ctx.textAlign = 'left';
     ctx.fillText(s.abbr, PAD, y + 10);
@@ -1517,7 +1519,7 @@ function saveCharImage() {
     }
 
     // 수치
-    ctx.font = 'bold 12px "Noto Sans KR", sans-serif';
+    ctx.font = 'bold 12px sans-serif';
     ctx.fillStyle = '#e8e8f8';
     ctx.textAlign = 'right';
     ctx.fillText(val, W-PAD, y + 11);
@@ -1526,7 +1528,7 @@ function saveCharImage() {
   });
 
   // 하단 워터마크
-  ctx.font = '10px "Noto Sans KR", sans-serif';
+  ctx.font = '10px sans-serif';
   ctx.fillStyle = '#3a3a5a';
   ctx.textAlign = 'center';
   ctx.fillText('진로탐색 RPG — 나를 찾는 모험', W/2, H - 10);
@@ -1538,6 +1540,17 @@ function saveCharImage() {
   link.click();
   btn.textContent = '📷 캐릭터 카드 저장';
   btn.disabled = false;
+  }; // doSave 끝
+
+  // 폰트 로드 보장 후 실행
+  if(document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      // 추가 대기 (모바일 렌더링 안정화)
+      setTimeout(doSave, 300);
+    });
+  } else {
+    setTimeout(doSave, 500);
+  }
 }
 
 function roundRect(ctx, x, y, w, h, r) {

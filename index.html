@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>나의 캐릭터 만들기 — 진로탐색 RPG</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0a14; --panel:#12121e; --panel2:#1a1a2e; --border:#2a2a4a;
+  --accent:#7c5cfc; --accent2:#fc5c7d; --accent3:#5cf0fc;
+  --gold:#ffd700; --green:#5cfc8a; --text:#e8e8f8; --text2:#9090b8;
+  --success:#5cfc8a; --fail:#fc5c5c; --warn:#fcb85c;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(124,92,252,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(124,92,252,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+
+/* SCREENS */
+.screen{display:none;position:relative;z-index:1;}
+.screen.active{display:block;}
+#intro{min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;}
+#intro.active{display:flex;}
+.has-nav{padding-bottom:80px;}
+
+/* TYPOGRAPHY */
+.pixel-title{font-family:'Press Start 2P',monospace;font-size:clamp(11px,2.2vw,20px);line-height:1.8;color:var(--accent);text-shadow:0 0 20px rgba(124,92,252,0.6);margin-bottom:8px;animation:flicker 3s infinite;}
+.pixel-sub{font-family:'Press Start 2P',monospace;font-size:clamp(7px,1.2vw,10px);color:var(--accent3);letter-spacing:2px;margin-bottom:50px;opacity:0.8;}
+@keyframes flicker{0%,95%,100%{opacity:1;}96%{opacity:0.7;}97%{opacity:1;}98%{opacity:0.5;}}
+
+/* INTRO */
+.intro-box{background:var(--panel);border:2px solid var(--border);border-radius:16px;padding:36px 40px;max-width:600px;width:100%;position:relative;}
+.intro-box::before{content:'';position:absolute;inset:-1px;border-radius:16px;background:linear-gradient(135deg,var(--accent),var(--accent2),var(--accent3));z-index:-1;opacity:0.3;}
+.intro-desc{font-size:15px;line-height:1.9;color:var(--text2);margin-bottom:30px;}
+.intro-desc strong{color:var(--text);}
+.name-input-wrap{margin-bottom:24px;}
+.name-input-wrap label{display:block;font-size:13px;font-weight:700;color:var(--accent3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;}
+.name-input-wrap input{width:100%;background:var(--panel2);border:2px solid var(--border);border-radius:10px;padding:14px 18px;font-family:'Noto Sans KR',sans-serif;font-size:18px;color:var(--text);outline:none;transition:border-color 0.2s;}
+.name-input-wrap input:focus{border-color:var(--accent);}
+.name-input-wrap input::placeholder{color:var(--text2);font-size:14px;}
+
+/* BUTTONS */
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;padding:16px 40px;font-family:'Noto Sans KR',sans-serif;font-size:16px;font-weight:700;color:#fff;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;box-shadow:0 4px 20px rgba(124,92,252,0.4);letter-spacing:1px;}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(124,92,252,0.5);}
+.btn-secondary{background:var(--panel2);border:2px solid var(--border);border-radius:10px;padding:14px;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;color:var(--text2);cursor:pointer;transition:border-color 0.2s,color 0.2s;}
+.btn-secondary:hover{border-color:var(--accent);color:var(--text);}
+.btn-attempt{flex:2;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;padding:14px;font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:700;color:#fff;cursor:pointer;transition:transform 0.15s;box-shadow:0 4px 16px rgba(124,92,252,0.4);}
+.btn-attempt:hover{transform:translateY(-2px);}
+
+/* SCREEN HEADER */
+.screen-header{text-align:center;margin-bottom:32px;}
+.screen-step{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--accent3);letter-spacing:3px;margin-bottom:10px;opacity:0.7;}
+.screen-title{font-size:24px;font-weight:900;color:var(--text);margin-bottom:8px;}
+.screen-desc{font-size:14px;color:var(--text2);line-height:1.7;}
+
+/* STAT INPUT */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--panel);border:2px solid var(--border);border-radius:14px;padding:18px 20px;display:flex;align-items:center;gap:16px;transition:border-color 0.2s;}
+.stat-card:hover{border-color:var(--accent);}
+.stat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.stat-info{flex:1;}
+.stat-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px;}
+.stat-name span{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text2);margin-left:6px;vertical-align:middle;}
+.stat-desc{font-size:11px;color:var(--text2);line-height:1.5;}
+.stat-bar-wrap{margin-top:6px;height:4px;background:var(--border);border-radius:4px;overflow:hidden;}
+.stat-bar{height:100%;border-radius:4px;transition:width 0.3s;}
+.stat-input-field{display:flex;flex-direction:column;align-items:center;gap:5px;}
+.stat-input-field input{width:68px;background:var(--panel2);border:2px solid var(--border);border-radius:10px;padding:9px 6px;text-align:center;font-family:'Noto Sans KR',sans-serif;font-size:20px;font-weight:700;color:var(--accent);outline:none;transition:border-color 0.2s;}
+.stat-input-field input:focus{border-color:var(--accent);}
+.stat-input-field input:disabled{opacity:0.5;cursor:not-allowed;}
+.range-hint{font-size:9px;color:var(--text2);font-family:'Press Start 2P',monospace;}
+.tip-box{background:linear-gradient(135deg,rgba(124,92,252,0.08),rgba(252,92,125,0.08));border:1px solid rgba(124,92,252,0.3);border-radius:12px;padding:14px 18px;font-size:13px;color:var(--text2);line-height:1.7;}
+.tip-box strong{color:var(--accent3);}
+
+/* BUFF SELECT */
+.buff-card{background:var(--panel);border:2px solid var(--border);border-radius:14px;padding:16px 20px;cursor:pointer;transition:border-color 0.2s,background 0.2s;}
+.buff-card:hover{border-color:var(--accent);}
+.buff-card.selected{border-color:var(--accent3);background:rgba(92,240,252,0.08);}
+.buff-card-inner{display:flex;align-items:center;gap:12px;}
+.buff-check{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:transparent;flex-shrink:0;transition:all 0.2s;}
+.buff-card.selected .buff-check{background:var(--accent3);border-color:var(--accent3);color:#000;}
+.buff-label{font-size:14px;font-weight:600;color:var(--text);}
+
+/* CHARACTER SHEET */
+.char-layout{display:grid;grid-template-columns:260px 1fr;gap:20px;margin-top:28px;align-items:start;}
+@media(max-width:700px){.char-layout{grid-template-columns:1fr;}}
+.char-left{position:sticky;top:20px;max-height:calc(100vh - 120px);overflow-y:auto;scrollbar-width:none;}
+.char-left::-webkit-scrollbar{display:none;}
+.char-avatar-box{background:var(--panel);border:2px solid var(--border);border-radius:16px;padding:24px 18px;text-align:center;margin-bottom:14px;position:relative;overflow:hidden;}
+.char-avatar-box::after{content:'';position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);width:120px;height:40px;background:radial-gradient(ellipse,rgba(124,92,252,0.3),transparent);filter:blur(10px);}
+.avatar-emoji{font-size:72px;display:block;margin-bottom:14px;}
+.char-name-display{font-size:20px;font-weight:900;color:var(--gold);margin-bottom:4px;}
+.char-class{font-size:11px;color:var(--accent3);letter-spacing:2px;font-weight:700;}
+.radar-wrap{background:var(--panel);border:2px solid var(--border);border-radius:16px;padding:18px;}
+.radar-title{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;text-align:center;}
+.mini-stats{margin-top:14px;}
+.mini-stat-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+.mini-stat-label{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text2);width:36px;flex-shrink:0;}
+.mini-stat-bar-bg{flex:1;height:7px;background:var(--border);border-radius:4px;overflow:hidden;}
+.mini-stat-bar-fill{height:100%;border-radius:4px;transition:width 0.6s ease;}
+.mini-stat-val{font-size:12px;font-weight:700;color:var(--text);width:26px;text-align:right;}
+.buff-tag{display:inline-flex;align-items:center;background:rgba(92,240,252,0.1);border:1px solid rgba(92,240,252,0.35);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:600;color:var(--accent3);white-space:nowrap;}
+
+/* QUEST LIST */
+.filter-btn{background:var(--panel2);border:2px solid var(--border);border-radius:20px;padding:6px 14px;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer;transition:all 0.2s;}
+.filter-btn.active,.filter-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(124,92,252,0.1);}
+.quest-list{display:flex;flex-direction:column;gap:10px;}
+.quest-item{background:var(--panel);border:2px solid var(--border);border-radius:14px;padding:16px 18px;cursor:pointer;transition:border-color 0.2s,transform 0.15s;position:relative;overflow:hidden;}
+.quest-item:hover{border-color:var(--accent);transform:translateX(3px);}
+.quest-item.done{border-color:var(--green);opacity:0.75;}
+.quest-item.done::after{content:'✓ 결과 보기';position:absolute;top:12px;right:14px;font-size:8px;font-weight:700;color:var(--green);font-family:'Press Start 2P',monospace;}
+.quest-item.disabled{opacity:0.35;cursor:not-allowed;}
+.quest-item.disabled:hover{border-color:var(--border);transform:none;}
+.quest-category{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;}
+.quest-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:5px;}
+.quest-req{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
+.req-tag{background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:2px 7px;font-size:9px;font-family:'Press Start 2P',monospace;}
+
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:100;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);}
+.modal-overlay.open{display:flex;}
+.modal-box{background:var(--panel);border:2px solid var(--border);border-radius:20px;padding:32px 36px;max-width:540px;width:100%;position:relative;animation:modalIn 0.25s ease;max-height:90vh;overflow-y:auto;}
+@keyframes modalIn{from{transform:scale(0.9);opacity:0;}to{transform:scale(1);opacity:1;}}
+.modal-close{position:absolute;top:14px;right:18px;background:none;border:none;cursor:pointer;font-size:22px;color:var(--text2);transition:color 0.2s;}
+.modal-close:hover{color:var(--text);}
+.modal-category{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;}
+.modal-title{font-size:20px;font-weight:900;color:var(--text);margin-bottom:10px;}
+.modal-desc-box{background:linear-gradient(135deg,rgba(124,92,252,0.08),rgba(92,240,252,0.08));border:1px solid rgba(124,92,252,0.3);border-left:4px solid var(--accent);border-radius:12px;padding:16px 18px;margin-bottom:18px;}
+.modal-desc-highlight{font-size:15px;font-weight:500;color:var(--text);line-height:1.85;}
+.modal-stats-hint{background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:13px 16px;margin-bottom:14px;}
+.modal-stats-hint-label{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--accent3);letter-spacing:2px;margin-bottom:10px;}
+.stat-tag-row{display:flex;flex-wrap:wrap;gap:7px;}
+.stat-tag{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:6px 13px;font-size:12px;font-weight:700;border:1.5px solid;background:rgba(0,0,0,0.2);}
+.success-comment{background:var(--panel2);border-radius:10px;padding:12px 16px;border-left:3px solid var(--accent);font-size:13px;color:var(--text2);line-height:1.7;}
+.modal-actions{display:flex;gap:10px;margin-top:18px;}
+
+/* RESULT MODAL */
+.result-modal{text-align:center;}
+.result-big-emoji{font-size:68px;display:block;margin-bottom:14px;animation:bounce 0.6s ease;}
+@keyframes bounce{0%,100%{transform:scale(1);}40%{transform:scale(1.3);}70%{transform:scale(0.9);}}
+.result-outcome{font-family:'Press Start 2P',monospace;font-size:clamp(14px,3vw,20px);margin-bottom:10px;}
+.result-feedback{font-size:14px;color:var(--text2);line-height:1.8;margin-bottom:16px;}
+.result-strong-tag{display:inline-block;border-radius:8px;padding:3px 10px;font-size:11px;font-weight:700;margin:2px;}
+
+/* STAT COMPARE */
+.stat-compare-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+.stat-compare-label{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text2);width:36px;flex-shrink:0;}
+
+/* RECORD SCREEN */
+.record-item{background:var(--panel);border:2px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color 0.2s;}
+.record-item:hover{border-color:var(--accent);}
+.record-item-header{padding:15px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;}
+.record-item-detail{display:none;padding:0 18px 14px;border-top:1px solid var(--border);}
+.record-item-detail.open{display:block;}
+.record-toggle{margin-left:auto;font-size:11px;color:var(--text2);transition:transform 0.2s;flex-shrink:0;}
+.record-item-header.open .record-toggle{transform:rotate(180deg);}
+.record-emoji{font-size:28px;flex-shrink:0;}
+.record-quest-name{font-size:14px;font-weight:700;color:var(--text);}
+.record-outcome-text{font-size:12px;margin-top:3px;}
+.record-date{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text2);}
+.empty-record{text-align:center;padding:50px 0;color:var(--text2);font-size:14px;}
+.empty-record span{display:block;font-size:44px;margin-bottom:14px;opacity:0.3;}
+
+/* NAV */
+.nav-bar{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:2px solid var(--border);display:flex;z-index:50;}
+.nav-item{flex:1;padding:13px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;transition:background 0.2s;border:none;background:none;color:var(--text2);}
+.nav-item.active{color:var(--accent);}
+.nav-item:hover{background:var(--panel2);}
+.nav-icon{font-size:19px;}
+.nav-label{font-family:'Press Start 2P',monospace;font-size:6px;letter-spacing:1px;}
+
+/* MISC */
+.canvas-wrap{display:flex;justify-content:center;}
+canvas{max-width:100%;}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+
+<!-- INTRO -->
+<div id="intro" class="screen active">
+  <div>
+    <div class="pixel-title">나의 캐릭터 만들기</div>
+    <div class="pixel-sub">CAREER EXPLORER RPG v2.0</div>
+    <div class="intro-box">
+      <p class="intro-desc">다중지능 검사 결과를 바탕으로 <strong>나만의 RPG 캐릭터</strong>를 만들어보자.<br>내 능력치로 학교생활 속 여러 활동을 도전하고<br><strong>나에게 맞는 직업과 진로</strong>를 탐색해봐!</p>
+      <div class="name-input-wrap">
+        <label>⚔ 캐릭터 이름을 입력하세요</label>
+        <input type="text" id="player-name" placeholder="예: 홍길동" maxlength="10"/>
+      </div>
+      <button class="btn-primary" onclick="startGame()">▶ 게임 시작하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 01: 다중지능 점수 입력 -->
+<div id="stat-input" class="screen has-nav">
+  <div style="max-width:800px;margin:0 auto;padding:36px 20px;">
+    <div class="screen-header">
+      <div class="screen-step">STEP 01 — 다중지능 검사 점수 입력</div>
+      <div class="screen-title">📋 검사 결과 입력</div>
+      <div class="screen-desc">다중지능 검사 결과지의 <strong>환산점수</strong>를 영역별로 입력해주세요.<br>각 영역의 최대 점수는 <strong>100점</strong>이에요.</div>
+    </div>
+    <div class="stat-grid" id="stat-grid"></div>
+    <div class="tip-box">✏️ <strong>입력 전 꼭 확인하세요!</strong><br>검사 결과지를 보며 정확하게 입력했는지 다시 한번 확인해주세요.<br>다음 단계에서 보조검사 점수를 입력하면 최종 능력치가 자동으로 계산돼요.</div>
+    <div id="stat-lock-notice" style="display:none;background:rgba(252,92,125,0.08);border:1px solid rgba(252,92,125,0.3);border-radius:12px;padding:13px 16px;margin-top:18px;font-size:13px;color:var(--accent2);text-align:center;">
+      🔒 캐릭터가 생성된 후에는 능력치를 수정할 수 없어요.<br>
+      <span id="edit-btn-wrap">수정이 필요하다면 <button onclick="unlockStats()" style="background:none;border:none;color:var(--accent3);font-size:13px;font-weight:700;cursor:pointer;text-decoration:underline;">1회 수정하기</button>를 사용해요. (1회 한정)</span>
+      <span id="edit-used-msg" style="display:none;color:var(--text2);">수정 기회를 이미 사용했어요.</span>
+    </div>
+    <div style="text-align:center;margin-top:28px;">
+      <button class="btn-primary" id="generate-btn" onclick="goToSubTest()">보조검사 점수 입력하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 01-B: 보조검사 점수 입력 -->
+<div id="sub-test" class="screen has-nav">
+  <div style="max-width:800px;margin:0 auto;padding:36px 20px;">
+    <div class="screen-header">
+      <div class="screen-step">STEP 01-B — 보조검사 점수 입력</div>
+      <div class="screen-title">🔍 보조검사 결과 입력</div>
+      <div class="screen-desc">보조검사 결과지의 <strong>영역별 원점수</strong>를 입력해주세요.<br>각 영역의 점수 범위는 <strong>4~28점</strong>이에요. (1~7점 × 4문항)</div>
+    </div>
+    <div class="stat-grid" id="sub-stat-grid"></div>
+    <div class="tip-box">✏️ 보조검사 결과지를 보며 정확하게 입력해주세요.<br>7점 척도(1~7점)로 응답한 점수를 합산하여 <strong>최종 능력치</strong>가 자동으로 계산돼요.</div>
+    <div style="text-align:center;margin-top:28px;">
+      <button class="btn-primary" onclick="generateCharacter()">✨ 내 캐릭터 생성하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 01-C: 생활습관 선택 -->
+<div id="buff-select" class="screen has-nav">
+  <div style="max-width:700px;margin:0 auto;padding:36px 20px;">
+    <div class="screen-header">
+      <div class="screen-step">STEP 01-C — 생활습관 선택</div>
+      <div class="screen-title">⚡ 나의 생활습관 선택</div>
+      <div class="screen-desc">평소 생활습관이 퀘스트 결과에 영향을 줄 수 있어요!<br>해당되는 항목을 <strong>최대 3개</strong>까지 선택해봐.</div>
+    </div>
+    <div style="background:rgba(124,92,252,0.08);border:1px solid rgba(124,92,252,0.25);border-radius:12px;padding:11px 15px;font-size:13px;color:var(--text2);margin-bottom:14px;">
+      나의 평상시 생활습관은 어떤지 고민하고, 가장 많이 하는 행동 순으로 선택해주세요!
+    </div>
+    <div style="background:rgba(252,92,125,0.07);border:1px solid rgba(252,92,125,0.25);border-radius:12px;padding:9px 15px;font-size:12px;color:var(--accent2);margin-bottom:24px;text-align:center;">
+      ⚠️ 생활습관은 한 번 선택하면 이후에 변경할 수 없어요. 신중하게 선택해주세요!
+    </div>
+    <div id="buff-list" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:11px;margin-bottom:28px;"></div>
+    <div style="text-align:center;">
+      <div id="buff-count-msg" style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--accent3);margin-bottom:14px;">0 / 3 선택됨</div>
+      <button class="btn-primary" onclick="confirmBuffs()">✨ 내 캐릭터 완성하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 02: 캐릭터 시트 -->
+<div id="char-sheet" class="screen has-nav">
+  <div style="max-width:1100px;margin:0 auto;padding:22px 18px;">
+    <div class="screen-header">
+      <div class="screen-step">STEP 02 — 캐릭터 시트</div>
+      <div class="screen-title" id="char-sheet-title">📜 나의 캐릭터 카드</div>
+      <div class="screen-desc">아래 퀘스트를 눌러 내 능력치로 도전해봐! (최대 15개)</div>
+      <div style="text-align:right;margin-top:8px;">
+        <button onclick="saveCharImage()" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">
+          📷 캐릭터 카드 저장
+        </button>
+      </div>
+    </div>
+    <div class="char-layout">
+      <div class="char-left" id="char-card-capture">
+        <div class="char-avatar-box">
+          <span class="avatar-emoji" id="char-avatar">🧙</span>
+          <div class="char-name-display" id="char-name-display">-</div>
+          <div class="char-class" id="char-class-display">클래스 분석 중...</div>
+          <div id="char-buff-tags" style="display:none;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:12px;"></div>
+        </div>
+        <div class="radar-wrap">
+          <div class="radar-title">🎯 능력치 레이더</div>
+          <div class="canvas-wrap"><canvas id="radar-canvas" width="220" height="220"></canvas></div>
+          <div class="mini-stats" id="mini-stats"></div>
+        </div>
+      </div>
+      <div class="char-right">
+        <div style="margin-bottom:14px;">
+          <div style="display:flex;gap:7px;flex-wrap:wrap;" id="category-filters">
+            <button class="filter-btn active" onclick="filterQuests('all',this)">전체</button>
+            <button class="filter-btn" onclick="filterQuests('필수',this)">📝 필수</button>
+            <button class="filter-btn" onclick="filterQuests('학습',this)">📚 학습</button>
+            <button class="filter-btn" onclick="filterQuests('관계',this)">🤝 관계</button>
+            <button class="filter-btn" onclick="filterQuests('이벤트',this)">🎪 이벤트</button>
+            <button class="filter-btn" onclick="filterQuests('사회참여',this)">🌍 사회참여</button>
+          </div>
+        </div>
+        <div class="quest-list" id="quest-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 03: 기록 -->
+<div id="record-screen" class="screen has-nav">
+  <div style="max-width:800px;margin:0 auto;padding:36px 20px;">
+    <div class="screen-header">
+      <div class="screen-step">STEP 03 — 탐색 기록</div>
+      <div class="screen-title">📓 나의 탐색 기록부</div>
+      <div class="screen-desc">도전한 활동과 결과를 확인해봐!</div>
+    </div>
+    <div id="record-summary" style="display:none;">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-top:20px;">
+        <div style="background:var(--panel);border:2px solid var(--border);border-radius:14px;padding:18px;text-align:center;">
+          <div style="font-family:'Press Start 2P',monospace;font-size:20px;color:var(--accent);margin-bottom:7px;" id="total-count">0/15</div>
+          <div style="font-size:12px;color:var(--text2);">도전한 활동</div>
+          <div style="height:4px;background:var(--border);border-radius:2px;margin-top:9px;overflow:hidden;"><div id="total-progress-bar" style="height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width 0.5s;"></div></div>
+        </div>
+        <div style="background:var(--panel);border:2px solid var(--border);border-radius:14px;padding:18px;text-align:center;">
+          <div style="font-family:'Press Start 2P',monospace;font-size:20px;color:var(--gold);margin-bottom:7px;" id="required-count">0/3</div>
+          <div style="font-size:12px;color:var(--text2);">필수 퀘스트</div>
+          <div style="height:4px;background:var(--border);border-radius:2px;margin-top:9px;overflow:hidden;"><div id="required-progress-bar" style="height:100%;background:var(--gold);border-radius:2px;width:0%;transition:width 0.5s;"></div></div>
+        </div>
+        <div style="background:var(--panel);border:2px solid var(--border);border-radius:14px;padding:18px;text-align:center;">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:7px;font-weight:700;">등급 분포</div>
+          <div id="grade-dist" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;"></div>
+        </div>
+      </div>
+    </div>
+    <!-- 탐색 분석 섹션 -->
+    <div id="analysis-section" style="display:none;margin-top:24px;" >
+      <div style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--accent3);letter-spacing:3px;margin-bottom:16px;">📊 나의 탐색 분석</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+        <!-- 흥미 영역 -->
+        <div style="background:var(--panel);border:2px solid var(--border);border-radius:16px;padding:20px;">
+          <div style="font-size:12px;font-weight:700;color:var(--accent3);letter-spacing:1px;margin-bottom:14px;">🎯 흥미 영역</div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:12px;line-height:1.6;">자주 도전한 활동의 지능 유형이에요.</div>
+          <div id="interest-area" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+        <!-- 강점 영역 -->
+        <div style="background:var(--panel);border:2px solid var(--border);border-radius:16px;padding:20px;">
+          <div style="font-size:12px;font-weight:700;color:var(--gold);letter-spacing:1px;margin-bottom:14px;">💪 강점 영역</div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:12px;line-height:1.6;">과일나무🍎 이상을 달성한 활동의 지능 유형이에요.</div>
+          <div id="strength-area" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+      </div>
+
+      <!-- 핵심 발견 -->
+      <div id="core-finding" style="display:none;background:linear-gradient(135deg,rgba(124,92,252,0.1),rgba(252,92,125,0.1));border:2px solid rgba(124,92,252,0.4);border-radius:16px;padding:22px;">
+        <div style="font-size:12px;font-weight:700;color:var(--accent);letter-spacing:1px;margin-bottom:6px;">✨ 핵심 발견</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:14px;">흥미와 강점이 함께 나타나는 영역이에요!</div>
+        <div id="core-intel-tags" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px;"></div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--accent3);letter-spacing:2px;margin-bottom:10px;">🔮 추천 직업</div>
+        <div id="core-jobs" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      </div>
+
+      <!-- 아직 데이터 부족 -->
+      <div id="analysis-empty" style="text-align:center;padding:30px;background:var(--panel);border:2px solid var(--border);border-radius:16px;color:var(--text2);font-size:13px;line-height:1.8;">
+        <div style="font-size:32px;margin-bottom:12px;">🌱</div>
+        퀘스트를 더 도전하면 분석 결과가 나타나요!<br>
+        <span style="font-size:12px;color:var(--text2);opacity:0.7;">최소 3개 이상 도전 후 확인해봐요.</span>
+      </div>
+    </div>
+
+    <div id="record-list-header" style="display:none;justify-content:space-between;align-items:center;margin:18px 0 10px;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--text2);">도전 기록</div>
+      <div style="display:flex;gap:7px;">
+        <button onclick="expandAllRecords()" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:5px 11px;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer;">전체 펼치기</button>
+        <button onclick="collapseAllRecords()" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:5px 11px;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer;">전체 접기</button>
+      </div>
+    </div>
+    <div class="quest-list" id="record-list">
+      <div class="empty-record"><span>📭</span>아직 도전한 활동이 없어요.<br>캐릭터 시트에서 퀘스트를 눌러 도전해보세요!</div>
+    </div>
+    <div style="text-align:center;margin-top:28px;display:flex;gap:11px;justify-content:center;flex-wrap:wrap;" id="record-actions" style="display:none;">
+      <button class="btn-primary" onclick="saveAnalysisImage()">📊 분석 결과 저장</button>
+      <button class="btn-secondary" onclick="confirmHome()" style="flex:none;padding:14px 22px;">🔄 처음부터</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="nav-bar" id="nav-bar" style="display:none;">
+  <button class="nav-item" id="nav-home" onclick="confirmHome()"><span class="nav-icon">🏠</span><span class="nav-label">처음으로</span></button>
+  <button class="nav-item" id="nav-stats" onclick="showScreen('stat-input')"><span class="nav-icon">📋</span><span class="nav-label">능력치</span></button>
+  <button class="nav-item" id="nav-char" onclick="showScreen('char-sheet')"><span class="nav-icon">🎮</span><span class="nav-label">캐릭터</span></button>
+  <button class="nav-item" id="nav-record" onclick="showScreen('record-screen')"><span class="nav-icon">📓</span><span class="nav-label">기록</span></button>
+</nav>
+
+<!-- 과목 선택 모달 -->
+<div class="modal-overlay" id="sub-quest-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('sub-quest-modal')">✕</button>
+    <div id="sub-quest-category" class="modal-category"></div>
+    <div id="sub-quest-title" class="modal-title"></div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:18px;line-height:1.7;" id="sub-quest-desc"></div>
+    <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--accent3);letter-spacing:2px;margin-bottom:12px;">📋 과목 / 계열을 선택하세요</div>
+    <div id="sub-quest-list" style="display:flex;flex-direction:column;gap:9px;"></div>
+    <button class="btn-secondary" onclick="closeModal('sub-quest-modal')" style="width:100%;margin-top:18px;">돌아가기</button>
+  </div>
+</div>
+
+<!-- 퀘스트 모달 -->
+<div class="modal-overlay" id="quest-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('quest-modal')">✕</button>
+    <div class="modal-category" id="modal-category"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-desc-box"><div class="modal-desc-highlight" id="modal-desc"></div></div>
+    <div class="modal-stats-hint">
+      <div class="modal-stats-hint-label">⚡ 이 활동에 중요한 능력</div>
+      <div id="modal-stat-tags"></div>
+    </div>
+    <div class="success-comment" id="modal-comment"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('quest-modal')">돌아가기</button>
+      <button class="btn-attempt" onclick="attemptQuest()">⚔ 도전하기!</button>
+    </div>
+  </div>
+</div>
+
+<!-- 결과 모달 -->
+<div class="modal-overlay" id="result-modal">
+  <div class="modal-box result-modal">
+    <div id="result-done-badge" style="display:none;background:rgba(124,92,252,0.12);border:1px solid rgba(124,92,252,0.3);border-radius:8px;padding:5px 13px;font-size:10px;color:var(--accent3);margin-bottom:14px;font-family:'Press Start 2P',monospace;">📋 이전 도전 결과</div>
+    <span class="result-big-emoji" id="result-emoji">🎉</span>
+    <div class="result-outcome" id="result-outcome"></div>
+    <div class="result-feedback" id="result-feedback"></div>
+    <div id="result-stat-compare-wrap" style="display:none;margin-bottom:14px;background:var(--panel2);border-radius:12px;padding:14px 16px;text-align:left;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--text2);letter-spacing:2px;margin-bottom:11px;">📊 능력치 분석</div>
+      <div id="result-stat-compare"></div>
+    </div>
+    <div id="result-career-hint" style="margin-bottom:18px;"></div>
+    <button class="btn-primary" onclick="closeModal('result-modal')" style="width:100%;">계속 탐색하기 →</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const STATS_DEF = [
+  {key:'lang',  name:'언어지능',    abbr:'LANG',emoji:'📖',desc:'말하고 쓰고 읽는 능력.',   color:'#fc5c7d',icon_bg:'rgba(252,92,125,0.15)'},
+  {key:'logic', name:'논리수학지능',abbr:'LOG', emoji:'🔢',desc:'수와 논리, 분석하는 능력.',color:'#5caafc',icon_bg:'rgba(92,170,252,0.15)'},
+  {key:'space', name:'공간지능',    abbr:'SPC', emoji:'🎨',desc:'그림·디자인·방향감각.',    color:'#fc9c5c',icon_bg:'rgba(252,156,92,0.15)'},
+  {key:'body',  name:'신체운동지능',abbr:'STR', emoji:'💪',desc:'몸을 잘 쓰는 능력.',       color:'#5cfc8a',icon_bg:'rgba(92,252,138,0.15)'},
+  {key:'music', name:'음악지능',    abbr:'MUS', emoji:'🎵',desc:'리듬·음감·표현력.',        color:'#c45cfc',icon_bg:'rgba(196,92,252,0.15)'},
+  {key:'social',name:'인간친화지능',abbr:'SOC', emoji:'🤝',desc:'사람을 이해하고 이끄는 능력.',color:'#ffd700',icon_bg:'rgba(255,215,0,0.15)'},
+  {key:'self',  name:'자기성찰지능',abbr:'MNT', emoji:'🔮',desc:'자신을 잘 아는 능력.',     color:'#5cf0fc',icon_bg:'rgba(92,240,252,0.15)'},
+  {key:'nature',name:'자연친화지능',abbr:'NAT', emoji:'🌿',desc:'자연과 생명을 탐구하는 능력.',color:'#8afc5c',icon_bg:'rgba(138,252,92,0.15)'},
+];
+
+const GRADES = [
+  {id:'새싹',    emoji:'🌱',min:0,  color:'#8afc5c',msg:'아직 낯선 영역이지만, 도전한 것 자체가 탐색의 시작이야!'},
+  {id:'어린나무',emoji:'🌿',min:30, color:'#5cfc8a',msg:'조금씩 자라고 있어! 어떤 능력이 부족했는지 확인하고 보완해봐.'},
+  {id:'꽃나무',  emoji:'🌸',min:57, color:'#fc9c5c',msg:'꽃을 피웠어! 꽤 잘 해낼 수 있는 활동이야. 조금만 더 갈고닦으면 충분해.'},
+  {id:'과일나무',emoji:'🍎',min:85, color:'#ffd700',msg:'열매를 맺었어! 이 활동은 네 강점이 빛나는 영역이야. 관련 직업을 꼭 탐색해봐.'},
+  {id:'세계수',  emoji:'✨',min:999,color:'#fc5cfc',msg:'세계수로 성장했어! 꾸준한 생활습관이 너를 한 단계 더 성장시켰어.'},
+];
+const GRADE_ORDER = ['세계수','과일나무','꽃나무','어린나무','새싹'];
+
+const BUFFS = [
+  {id:'sleep',  label:'평균 수면 6시간 이상',      globalChance:5,globalMsg:'충분한 휴식이 컨디션을 끌어올렸어!',     related:[],            specialChance:0,specialMsg:''},
+  {id:'meal',   label:'규칙적으로 식사 챙기기',     globalChance:5,globalMsg:'규칙적인 식습관이 집중력을 높여줬어!',   related:[],            specialChance:0,specialMsg:''},
+  {id:'sport',  label:'운동 주 3회 이상',           globalChance:3,globalMsg:'꾸준한 운동 습관이 활력을 불어넣었어!',  related:['body','social'],  specialChance:2,specialMsg:'건강한 몸이 최고의 무기야!'},
+  {id:'plan',   label:'계획 세우고 실천하기',        globalChance:3,globalMsg:'체계적인 계획 습관이 실행력을 키웠어!', related:['logic','self'],    specialChance:2,specialMsg:'계획하는 습관이 논리적 사고를 도왔어!'},
+  {id:'study',  label:'자율학습 하루 2시간 이상',   globalChance:3,globalMsg:'꾸준한 자율학습이 실력으로 이어졌어!',  related:['lang','logic'],   specialChance:2,specialMsg:'학습 습관이 분석력과 표현력을 키웠어!'},
+  {id:'read',   label:'독서 월 1권 이상',           globalChance:3,globalMsg:'책 속의 지혜가 빛을 발했어!',           related:['lang','self','logic'],specialChance:2,specialMsg:'독서 습관이 사고력과 표현력을 높였어!'},
+  {id:'diary',  label:'평소 다이어리·일기 쓰는 습관',globalChance:3,globalMsg:'스스로를 돌아보는 습관이 통찰력을 키웠어!',related:['self','lang'],  specialChance:2,specialMsg:'기록하는 습관이 자기이해를 깊게 했어!'},
+  {id:'clean',  label:'방 청소 및 책상 정리 습관',  globalChance:2,globalMsg:'깔끔한 환경이 맑은 정신을 만들었어!',   related:['self','space'],   specialChance:2,specialMsg:'정돈하는 습관이 공간 감각을 키웠어!'},
+  {id:'music',  label:'음악 감상 습관',             globalChance:3,globalMsg:'음악이 감각을 깨워줬어!',               related:['music'],          specialChance:2,specialMsg:'음악을 즐기는 습관이 리듬 감각을 높였어!'},
+  {id:'stretch',label:'스트레칭·명상 습관',          globalChance:3,globalMsg:'마음의 여유가 집중력을 높였어!',        related:['self','body'],     specialChance:2,specialMsg:'몸과 마음을 돌보는 습관이 균형을 만들었어!'},
+];
+
+const QUESTS = [
+  // 필수
+  {id:'q_exam',cat:'필수',required:true,star:3,name:'고사(시험) 보기',emoji:'🗒️',desc:'한 학기 동안 배운 모든 내용을 평가받는 시험이에요. 다양한 과목의 지식과 사고력, 집중력이 모두 필요해요.',req:{lang:65,logic:65,self:60,space:55,social:50},jobs:['의사','변호사','교수','연구원','공무원']},
+  {id:'q_perform',cat:'필수',required:true,star:2,name:'수행평가 제출하기',emoji:'📋',desc:'각 과목의 수행평가를 준비하고 제출해요. 선택한 과목에 따라 필요한 능력이 달라져요.',req:{},jobs:[],
+    subQuests:[
+      {id:'pf_kor',  name:'국어 수행평가', req:{lang:70,self:60},    jobs:['작가','기자','국어교사','방송인']},
+      {id:'pf_math', name:'수학 수행평가', req:{logic:70,space:60},   jobs:['수학교사','데이터분석가','엔지니어','회계사']},
+      {id:'pf_eng',  name:'영어 수행평가', req:{lang:65,social:55},  jobs:['통역사','외교관','영어교사','무역전문가']},
+      {id:'pf_soc',  name:'사회 수행평가', req:{lang:60,social:60,self:50},jobs:['사회교사','정치인','사회복지사','언론인']},
+      {id:'pf_sci',  name:'과학 수행평가', req:{logic:65,nature:65}, jobs:['과학자','의사','약사','환경연구원']},
+      {id:'pf_music',name:'음악 수행평가', req:{music:70,self:55},   jobs:['음악가','음악교사','작곡가','뮤지컬배우']},
+      {id:'pf_art',  name:'미술 수행평가', req:{space:70,self:55},   jobs:['화가','디자이너','건축가','미술교사']},
+      {id:'pf_pe',   name:'체육 수행평가', req:{body:70,social:55},  jobs:['운동선수','체육교사','트레이너','스포츠코치']},
+    ]},
+  {id:'q_report',cat:'필수',required:true,star:2,name:'보고서 작성하기',emoji:'📄',desc:'탐구하거나 조사한 내용을 체계적으로 정리해 보고서로 작성해요. 계열에 따라 필요한 능력이 달라져요.',req:{},jobs:[],
+    subQuests:[
+      {id:'rp_sci',    name:'이과계열 보고서',   req:{logic:70,nature:65,lang:55},jobs:['연구원','과학자','엔지니어','의사']},
+      {id:'rp_lib',    name:'문과계열 보고서',   req:{lang:70,social:60,self:55}, jobs:['작가','기자','사회학자','교사']},
+      {id:'rp_career', name:'진로탐색 보고서',   req:{self:70,lang:60,social:55}, jobs:['상담사','진로교사','코치','사회복지사']},
+      {id:'rp_creative',name:'창의적탐구 보고서',req:{logic:65,space:60,self:55}, jobs:['연구원','기획자','디자이너','발명가']},
+    ]},
+  // 학습
+  {id:'q_present',  cat:'학습',star:1,name:'수업 발표하기',        emoji:'🎤',desc:'수업 중 내 의견을 발표하고 질문에 답하는 상황이에요. 내용을 논리적으로 전달하고 자신 있게 말할 수 있어야 해요.',req:{lang:62,self:52},jobs:['교사','아나운서','강사','컨설턴트']},
+  {id:'q_debate',   cat:'학습',star:3,name:'토론대회 출전하기',     emoji:'💬',desc:'주어진 논제에 대해 근거를 들어 논리적으로 주장하는 대회예요. 계열에 따라 필요한 능력이 달라져요.',req:{},jobs:[],
+    subQuests:[
+      {id:'db_sci',    name:'과학토론대회', req:{logic:82,lang:65,nature:58},jobs:['과학자','연구원','공학자','과학교사']},
+      {id:'db_current',name:'시사토론대회', req:{lang:82,social:65,logic:58},jobs:['정치인','기자','변호사','외교관']},
+    ]},
+  {id:'q_math',     cat:'학습',star:2,name:'수학탐구 활동하기',     emoji:'🔢',desc:'수학적 개념을 실생활 문제에 적용하거나 심화 탐구하는 활동이에요. 논리적 사고와 공간 감각이 필요해요.',req:{logic:68,space:58},jobs:['수학자','엔지니어','데이터과학자','건축가']},
+  {id:'q_essay',    cat:'학습',star:1,name:'독서 감상문 쓰기',      emoji:'✍️',desc:'책을 읽고 생각과 느낌을 체계적으로 글로 써야 해요. 어휘력과 자기성찰이 중요해요.',req:{lang:62,self:57},jobs:['작가','기자','편집자','국어교사']},
+  {id:'q_ppt',      cat:'학습',star:2,name:'발표 자료 만들기',      emoji:'🖥️',desc:'수업이나 과제 발표를 위해 PPT·포스터 등 시각적 자료를 제작해요. 내용 구성과 디자인 감각이 필요해요.',req:{space:63,lang:58},jobs:['디자이너','기획자','마케터','UX디자이너']},
+  {id:'q_nightstudy',cat:'학습',star:1,name:'야간자율학습 참여하기', emoji:'📚',desc:'방과 후 스스로 학습 계획을 세우고 자율적으로 공부하는 시간이에요. 자기관리와 집중력이 핵심이에요.',req:{self:63,logic:52},jobs:['연구원','의사','변호사','교수']},
+  // 관계
+  {id:'q_election', cat:'관계',star:2,name:'학급 임원 출마하기',    emoji:'🗳️',desc:'학급 친구들 앞에서 공약을 발표하고 신뢰를 얻어야 해요. 리더십과 언변이 필요해요.',req:{lang:68,social:82,self:58},jobs:['정치인','CEO','공무원','사회운동가']},
+  {id:'q_leader',   cat:'관계',star:2,name:'모둠 프로젝트 리더',     emoji:'👑',desc:'팀 프로젝트에서 리더를 맡아 역할을 나누고 결과물을 만들어요. 조율과 책임감이 중요해요.',req:{social:80,logic:58,lang:55},jobs:['프로젝트매니저','팀장','컨설턴트','기획자']},
+  {id:'q_mediate',  cat:'관계',star:3,name:'갈등 상황 중재하기',    emoji:'🕊️',desc:'친구들 사이의 갈등을 중간에서 해결해주는 역할이에요. 공감 능력과 소통 능력이 매우 중요해요.',req:{social:78,self:68,lang:58},jobs:['상담사','사회복지사','인사담당자','외교관']},
+  {id:'q_listen',   cat:'관계',star:1,name:'친구 고민 들어주기',    emoji:'🤲',desc:'힘든 친구의 이야기를 진심으로 들어주고 공감해주는 활동이에요. 따뜻한 마음과 소통 능력이 필요해요.',req:{social:62,lang:52},jobs:['상담사','사회복지사','간호사','심리치료사']},
+  {id:'q_classroom',cat:'관계',star:1,name:'학급 환경 조성하기',    emoji:'🏫',desc:'학급 게시판이나 교실 환경을 함께 꾸미는 활동이에요. 공간 감각과 협동심이 필요해요.',req:{space:62,social:52},jobs:['인테리어디자이너','교사','이벤트플래너','건축가']},
+  // 이벤트
+  {id:'q_sports',     cat:'이벤트',star:2,name:'체육대회 출전하기',    emoji:'⚽',desc:'학교 체육대회에서 종목에 출전하거나 팀을 이끌어요. 체력과 팀워크가 모두 중요해요.',req:{body:82,social:58},jobs:['운동선수','스포츠코치','체육교사','트레이너']},
+  {id:'q_festival',   cat:'이벤트',star:2,name:'학교 축제 참여하기',   emoji:'🎭',desc:'학교 축제 부스나 공연에 참여해요. 창의성과 팀워크, 표현력이 필요해요.',req:{social:63,space:58,self:52},jobs:['이벤트플래너','PD','마케터','배우']},
+  {id:'q_mc',         cat:'이벤트',star:3,name:'학교 행사 사회보기',   emoji:'🎤',desc:'학교 행사에서 진행자(MC) 역할을 맡아요. 순발력 있는 언변과 자신감이 핵심이에요.',req:{lang:85,social:68,self:58},jobs:['아나운서','방송인','MC','행사기획자']},
+  {id:'q_orchestra',  cat:'이벤트',star:2,name:'오케스트라 활동하기',  emoji:'🎻',desc:'학교 오케스트라 단원으로 참여해 합주 연습을 하고 연주회를 준비해요. 음악 감각과 협동심이 필요해요.',req:{music:85,social:63},jobs:['음악가','지휘자','음악교사','작곡가']},
+  {id:'q_art_exhibit',cat:'이벤트',star:2,name:'미술전시회 출품하기',  emoji:'🖼️',desc:'직접 만든 작품을 학교 미술전시회에 출품해요. 창작 능력과 자기표현이 핵심이에요.',req:{space:85,self:63},jobs:['화가','조각가','디자이너','큐레이터']},
+  {id:'q_photo',      cat:'이벤트',star:2,name:'사진전시전 참여하기',  emoji:'📸',desc:'사진을 찍고 주제에 맞게 편집해 전시전에 출품해요. 공간 감각과 자기표현이 필요해요.',req:{space:80,self:58},jobs:['사진작가','영상감독','기자','광고디자이너']},
+  {id:'q_chorus',     cat:'이벤트',star:2,name:'합창대회 참가하기',    emoji:'🎵',desc:'반 대표로 합창대회에 참가해요. 음감과 화음 맞추기, 팀워크가 필요해요.',req:{music:80,social:58},jobs:['성악가','음악교사','합창지휘자','뮤지컬배우']},
+  // 사회참여
+  {id:'q_volunteer',cat:'사회참여',star:2,name:'봉사활동 참여하기',     emoji:'🙋',desc:'지역사회나 학교에서 봉사활동을 하고 봉사시간을 채워요. 따뜻한 마음과 실천력이 필요해요.',req:{social:68,self:58},jobs:['사회복지사','간호사','NGO활동가','상담사']},
+  {id:'q_dokdo',    cat:'사회참여',star:1,name:'독도체험 활동하기',     emoji:'🗺️',desc:'독도에 대해 배우고 체험활동에 참여해요. 역사와 환경에 대한 관심이 필요해요.',req:{nature:57,lang:52},jobs:['역사교사','환경운동가','외교관','기자']},
+  {id:'q_farm',     cat:'사회참여',star:1,name:'농촌체험 활동하기',     emoji:'🌾',desc:'농촌을 방문해 농업 체험을 해요. 자연에 대한 관심과 신체 활동이 필요해요.',req:{nature:63,body:52},jobs:['농업전문가','환경연구원','생태교육사','수의사']},
+  {id:'q_hike',     cat:'사회참여',star:1,name:'가족산행 참여하기',     emoji:'🏔️',desc:'가족과 함께 산행을 하며 자연을 느끼는 활동이에요. 체력과 자연에 대한 관심이 필요해요.',req:{body:63,nature:52},jobs:['산림관련직','레저스포츠강사','환경교육사','트레이너']},
+  {id:'q_eco',      cat:'사회참여',star:1,name:'환경 캠페인 참여하기',  emoji:'♻️',desc:'환경 보호를 위한 캠페인이나 활동에 참여해요. 환경 의식과 실천 의지가 필요해요.',req:{nature:63,lang:52},jobs:['환경운동가','환경연구원','환경교사','NGO활동가']},
+  {id:'q_club',     cat:'사회참여',star:2,name:'동아리 활동하기',        emoji:'🌱',desc:'관심 분야의 동아리에 가입해 꾸준히 활동해요. 자기 관심사와 협동심이 필요해요.',req:{self:63,social:52},jobs:['전문가(분야별)','동아리지도교사','기획자','연구원']},
+  {id:'q_career',   cat:'사회참여',star:2,name:'진로 정보 탐색하기',    emoji:'🔍',desc:'관심 있는 직업이나 진로에 대해 조사하고 정보를 수집해요. 자기이해와 탐구심이 필요해요.',req:{self:68,lang:58},jobs:['진로상담사','직업훈련교사','HR전문가','코치']},
+];
+
+const REQUIRED_QUEST_IDS = ['q_exam','q_perform','q_report'];
+const MAX_QUESTS = 15;
+
+// ============================================================
+// 전체 퀘스트 기준 지능 등장 횟수 (흥미 영역 보정용)
+// lang:20, logic:10, space:10, body:4, music:3, social:19, self:20, nature:7
+// ============================================================
+const INTEL_QUEST_TOTAL = {
+  lang:20, logic:10, space:10, body:4, music:3, social:19, self:20, nature:7
+};
+
+// ============================================================
+// 지능별 추천 직업 데이터
+// ============================================================
+const INTEL_JOBS = {
+  lang:  { name:'언어지능',    emoji:'📖', color:'#fc5c7d', jobs:['작가','기자','아나운서','교사','변호사','번역가','시인','광고카피라이터'] },
+  logic: { name:'논리수학지능',emoji:'🔢', color:'#5caafc', jobs:['연구원','데이터과학자','엔지니어','의사','회계사','수학교사','프로그래머','금융분석가'] },
+  space: { name:'공간지능',    emoji:'🎨', color:'#fc9c5c', jobs:['건축가','디자이너','화가','사진작가','영상감독','인테리어디자이너','웹디자이너','만화가'] },
+  body:  { name:'신체운동지능',emoji:'💪', color:'#5cfc8a', jobs:['운동선수','체육교사','트레이너','댄서','물리치료사','조각가','외과의사','스포츠코치'] },
+  music: { name:'음악지능',    emoji:'🎵', color:'#c45cfc', jobs:['음악가','작곡가','지휘자','음악교사','뮤지컬배우','음향엔지니어','성악가','음악치료사'] },
+  social:{ name:'인간친화지능',emoji:'🤝', color:'#ffd700', jobs:['상담사','사회복지사','교사','HR전문가','정치인','외교관','NGO활동가','간호사'] },
+  self:  { name:'자기성찰지능',emoji:'🔮', color:'#5cf0fc', jobs:['심리상담사','철학자','작가','진로상담사','명상지도자','코치','성직자','사회운동가'] },
+  nature:{ name:'자연친화지능',emoji:'🌿', color:'#8afc5c', jobs:['환경연구원','수의사','생물학자','농업전문가','환경교사','산림전문가','해양생물학자','생태관광가이드'] },
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let playerName='', stats={}, records=[], currentQuest=null, activeFilter='all';
+let selectedBuffs=[], statsLocked=false, statsEditUsed=false;
+let subAnswers={}, subScores={}, primaryScores={};
+
+// ============================================================
+// SCREENS
+// ============================================================
+function showScreen(id) {
+  if(!playerName && id!=='intro') return;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const map={'stat-input':'nav-stats','sub-test':'nav-stats','buff-select':'nav-stats','char-sheet':'nav-char','record-screen':'nav-record'};
+  if(map[id]) document.getElementById(map[id]).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function startGame() {
+  const n = document.getElementById('player-name').value.trim();
+  if(!n){alert('캐릭터 이름을 입력해주세요!');return;}
+  playerName=n;
+  document.getElementById('nav-bar').style.display='flex';
+  buildStatInputs();
+  showScreen('stat-input');
+  document.getElementById('nav-stats').classList.add('active');
+}
+
+// ============================================================
+// STAT INPUT
+// ============================================================
+function buildStatInputs() {
+  const grid=document.getElementById('stat-grid');
+  grid.innerHTML='';
+  STATS_DEF.forEach(s=>{
+    const val=primaryScores[s.key]||'';
+    const disabled=statsLocked?'disabled':'';
+    grid.innerHTML+=`<div class="stat-card">
+      <div class="stat-icon" style="background:${s.icon_bg}"><span style="font-size:22px">${s.emoji}</span></div>
+      <div class="stat-info">
+        <div class="stat-name">${s.name} <span>${s.abbr}</span></div>
+        <div class="stat-desc">${s.desc}</div>
+        <div class="stat-bar-wrap" style="margin-top:6px;"><div class="stat-bar" id="bar-${s.key}" style="width:${val||0}%;background:${s.color}"></div></div>
+      </div>
+      <div class="stat-input-field">
+        <input type="number" id="stat-${s.key}" min="0" max="100" value="${val}" placeholder="0" ${disabled}
+          oninput="updateBar('${s.key}',this.value)"
+          onchange="clampInput(this,0,100);updateBar('${s.key}',this.value)"
+          onblur="clampInput(this,0,100);updateBar('${s.key}',this.value)"/>
+        <span class="range-hint">0~100</span>
+      </div>
+    </div>`;
+  });
+}
+
+function buildSubStatInputs() {
+  const grid=document.getElementById('sub-stat-grid');
+  if(!grid) return;
+  grid.innerHTML='';
+  STATS_DEF.forEach(s=>{
+    const val=subAnswers[s.key]||'';
+    grid.innerHTML+=`<div class="stat-card">
+      <div class="stat-icon" style="background:${s.icon_bg}"><span style="font-size:22px">${s.emoji}</span></div>
+      <div class="stat-info">
+        <div class="stat-name">${s.name} <span>${s.abbr}</span></div>
+        <div class="stat-desc">${s.desc}</div>
+        <div class="stat-bar-wrap" style="margin-top:6px;"><div class="stat-bar" id="sub-bar-${s.key}" style="width:${val?(val-4)/24*100:0}%;background:${s.color}"></div></div>
+      </div>
+      <div class="stat-input-field">
+        <input type="number" id="sub-stat-${s.key}" min="4" max="28" value="${val}" placeholder="4"
+          oninput="updateSubBar('${s.key}',this.value)"
+          onchange="clampInput(this,4,28);updateSubBar('${s.key}',this.value)"
+          onblur="clampInput(this,4,28);updateSubBar('${s.key}',this.value)"/>
+        <span class="range-hint">4~28</span>
+      </div>
+    </div>`;
+  });
+}
+
+function clampInput(el,min,max){
+  let v=parseInt(el.value);
+  if(isNaN(v)||el.value===''){el.value=min;return;}
+  if(v>max) el.value=max;
+  if(v<min) el.value=min;
+}
+function updateBar(key,val){val=Math.min(100,Math.max(0,parseInt(val)||0));const b=document.getElementById('bar-'+key);if(b)b.style.width=val+'%';}
+function updateSubBar(key,val){val=Math.min(28,Math.max(4,parseInt(val)||4));const b=document.getElementById('sub-bar-'+key);if(b)b.style.width=((val-4)/24*100)+'%';}
+
+function goToSubTest() {
+  if(statsLocked) return;
+  let filled=0;
+  STATS_DEF.forEach(s=>{
+    const v=parseInt(document.getElementById('stat-'+s.key).value)||0;
+    primaryScores[s.key]=Math.min(100,Math.max(0,v));
+    if(primaryScores[s.key]>0) filled++;
+  });
+  if(filled<3){alert('최소 3개 이상의 점수를 입력해주세요!');return;}
+  if(statsEditUsed){buildSubStatInputs();showScreen('sub-test');return;}
+  buildSubStatInputs();
+  showScreen('sub-test');
+}
+
+function calcSubScores(){
+  STATS_DEF.forEach(s=>{
+    const raw=Math.min(28,Math.max(4,parseInt(document.getElementById('sub-stat-'+s.key)?.value)||4));
+    subAnswers[s.key]=raw;
+    subScores[s.key]=Math.round((raw-4)/24*100);
+  });
+}
+function calcFinalStats(){
+  STATS_DEF.forEach(s=>{
+    stats[s.key]=Math.round((primaryScores[s.key]||0)*0.4+(subScores[s.key]||0)*0.6);
+  });
+}
+function generateCharacter(){
+  calcSubScores();
+  calcFinalStats();
+  if(statsEditUsed){lockStats();renderCharSheet();showScreen('char-sheet');document.getElementById('nav-char').classList.add('active');return;}
+  buildBuffList();
+  showScreen('buff-select');
+}
+
+function lockStats(){
+  statsLocked=true;
+  STATS_DEF.forEach(s=>{const el=document.getElementById('stat-'+s.key);if(el)el.disabled=true;});
+  const n=document.getElementById('stat-lock-notice');if(n)n.style.display='block';
+  const gb=document.getElementById('generate-btn');if(gb)gb.style.display='none';
+  if(statsEditUsed){
+    const eb=document.getElementById('edit-btn-wrap');if(eb)eb.style.display='none';
+    const em=document.getElementById('edit-used-msg');if(em)em.style.display='inline';
+  }
+}
+function unlockStats(){
+  if(statsEditUsed) return;
+  if(!confirm('능력치를 1회 수정할 수 있어요.\n생활습관은 변경되지 않아요.\n계속할까요?')) return;
+  statsLocked=false; statsEditUsed=true;
+  STATS_DEF.forEach(s=>{const el=document.getElementById('stat-'+s.key);if(el)el.disabled=false;});
+  const gb=document.getElementById('generate-btn');if(gb){gb.style.display='inline-block';gb.textContent='✔ 수정 완료하기';}
+  const eb=document.getElementById('edit-btn-wrap');if(eb)eb.style.display='none';
+  const em=document.getElementById('edit-used-msg');if(em)em.style.display='inline';
+}
+
+// ============================================================
+// BUFF SELECT
+// ============================================================
+function buildBuffList(){
+  const el=document.getElementById('buff-list');
+  el.innerHTML=BUFFS.map(b=>`
+    <div class="buff-card${selectedBuffs.includes(b.id)?' selected':''}" id="buff-card-${b.id}" onclick="toggleBuff('${b.id}')">
+      <div class="buff-card-inner">
+        <div class="buff-check" id="buff-check-${b.id}">✓</div>
+        <div class="buff-label">${b.label}</div>
+      </div>
+    </div>`).join('');
+  updateBuffCount();
+}
+function toggleBuff(id){
+  const idx=selectedBuffs.indexOf(id);
+  if(idx>-1){selectedBuffs.splice(idx,1);document.getElementById('buff-card-'+id).classList.remove('selected');}
+  else{if(selectedBuffs.length>=3){alert('최대 3개까지만 선택할 수 있어요!');return;}selectedBuffs.push(id);document.getElementById('buff-card-'+id).classList.add('selected');}
+  updateBuffCount();
+}
+function updateBuffCount(){document.getElementById('buff-count-msg').textContent=selectedBuffs.length+' / 3 선택됨';}
+function confirmBuffs(){lockStats();renderCharSheet();showScreen('char-sheet');document.getElementById('nav-char').classList.add('active');}
+
+// ============================================================
+// CHARACTER SHEET
+// ============================================================
+function getTopStats(n){return [...STATS_DEF].sort((a,b)=>(stats[b.key]||0)-(stats[a.key]||0)).slice(0,n||3);}
+// 우선순위: lang > logic > space > body > music > social > self > nature
+const STAT_PRIORITY = ['lang','logic','space','body','music','social','self','nature'];
+
+const CLASS_MAP = {
+  'lang+logic':  {cls:'진실의 검사',        emoji:'🧑‍⚖️'},
+  'lang+space':  {cls:'언어를 그리는 자',    emoji:'🎭'},
+  'lang+body':   {cls:'외침의 전사',         emoji:'🗡️'},
+  'lang+music':  {cls:'서정의 음유시인',     emoji:'🎤'},
+  'lang+social': {cls:'민심을 잇는 자',      emoji:'🌟'},
+  'lang+self':   {cls:'말의 현자',           emoji:'📜'},
+  'lang+nature': {cls:'대지의 서술자',       emoji:'🍃'},
+  'logic+space': {cls:'세계를 설계하는 자',  emoji:'🏛️'},
+  'logic+body':  {cls:'철의 전략가',         emoji:'⚔️'},
+  'logic+music': {cls:'수열의 연주자',       emoji:'🎼'},
+  'logic+social':{cls:'이성의 군주',         emoji:'👑'},
+  'logic+self':  {cls:'진리를 꿰뚫는 자',   emoji:'🔭'},
+  'logic+nature':{cls:'자연법칙의 해독자',   emoji:'🔬'},
+  'space+body':  {cls:'형태를 빚는 장인',    emoji:'🛠️'},
+  'space+music': {cls:'감각의 연금술사',     emoji:'🎨'},
+  'space+social':{cls:'비전의 전령',         emoji:'💡'},
+  'space+self':  {cls:'영혼의 조각가',       emoji:'🖼️'},
+  'space+nature':{cls:'경계를 그리는 자',    emoji:'🌏'},
+  'body+music':  {cls:'폭풍의 무용수',       emoji:'💃'},
+  'body+social': {cls:'결속의 수호자',       emoji:'🏅'},
+  'body+self':   {cls:'강철의 구도자',       emoji:'🧘'},
+  'body+nature': {cls:'야생의 개척자',       emoji:'🏕️'},
+  'music+social':{cls:'화합의 지휘자',       emoji:'🎻'},
+  'music+self':  {cls:'고요한 선율가',       emoji:'🎵'},
+  'music+nature':{cls:'바람의 연주자',       emoji:'🌿'},
+  'social+self': {cls:'영혼의 길잡이',       emoji:'🤝'},
+  'social+nature':{cls:'생명의 수호자',      emoji:'🌱'},
+  'self+nature': {cls:'침묵의 관찰자',       emoji:'🍀'},
+};
+
+function getClass(){
+  // 우선순위 기준으로 정렬 후 상위 2개 추출
+  const sorted = [...STATS_DEF].sort((a,b)=>{
+    const scoreDiff = (stats[b.key]||0) - (stats[a.key]||0);
+    if(scoreDiff !== 0) return scoreDiff;
+    return STAT_PRIORITY.indexOf(a.key) - STAT_PRIORITY.indexOf(b.key);
+  });
+  const top1 = sorted[0].key;
+  const top2 = sorted[1].key;
+
+  // 우선순위 순으로 키 정렬 (항상 낮은 인덱스가 앞)
+  const keys = [top1, top2].sort((a,b)=>STAT_PRIORITY.indexOf(a)-STAT_PRIORITY.indexOf(b));
+  const mapKey = keys[0]+'+'+keys[1];
+  return CLASS_MAP[mapKey] || {cls:'모험가',emoji:'🧙'};
+}
+function renderCharSheet(){
+  const cls=getClass();
+  document.getElementById('char-avatar').textContent=cls.emoji;
+  document.getElementById('char-name-display').textContent=playerName;
+  document.getElementById('char-class-display').textContent=cls.cls;
+  document.getElementById('char-sheet-title').textContent='📜 '+playerName+'의 캐릭터 카드';
+  // 생활습관 태그
+  const btEl=document.getElementById('char-buff-tags');
+  if(btEl){
+    if(selectedBuffs.length>0){
+      btEl.innerHTML=selectedBuffs.map(id=>{const b=BUFFS.find(x=>x.id===id);return b?'<span class="buff-tag">⚡ '+b.label+'</span>':'';}).join('');
+      btEl.style.display='flex';
+    } else btEl.style.display='none';
+  }
+  renderMiniStats();
+  renderRadar();
+  renderQuests('all');
+}
+function renderMiniStats(){
+  document.getElementById('mini-stats').innerHTML=STATS_DEF.map(s=>`
+    <div class="mini-stat-row">
+      <div class="mini-stat-label">${s.abbr}</div>
+      <div class="mini-stat-bar-bg"><div class="mini-stat-bar-fill" style="width:${stats[s.key]||0}%;background:${s.color}"></div></div>
+      <div class="mini-stat-val">${stats[s.key]||0}</div>
+    </div>`).join('');
+}
+function renderRadar(){
+  const canvas=document.getElementById('radar-canvas'),ctx=canvas.getContext('2d');
+  const W=220,H=220,cx=110,cy=110,r=80,n=STATS_DEF.length;
+  ctx.clearRect(0,0,W,H);
+  for(let ring=1;ring<=5;ring++){ctx.beginPath();for(let i=0;i<n;i++){const a=(i/n)*2*Math.PI-Math.PI/2,rr=r*(ring/5);i===0?ctx.moveTo(cx+Math.cos(a)*rr,cy+Math.sin(a)*rr):ctx.lineTo(cx+Math.cos(a)*rr,cy+Math.sin(a)*rr);}ctx.closePath();ctx.strokeStyle='rgba(124,92,252,0.2)';ctx.lineWidth=1;ctx.stroke();}
+  for(let i=0;i<n;i++){const a=(i/n)*2*Math.PI-Math.PI/2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);ctx.strokeStyle='rgba(124,92,252,0.25)';ctx.lineWidth=1;ctx.stroke();}
+  ctx.beginPath();
+  STATS_DEF.forEach((s,i)=>{const a=(i/n)*2*Math.PI-Math.PI/2,v=(stats[s.key]||0)/100,x=cx+Math.cos(a)*r*v,y=cy+Math.sin(a)*r*v;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+  ctx.closePath();ctx.fillStyle='rgba(124,92,252,0.22)';ctx.fill();ctx.strokeStyle='#7c5cfc';ctx.lineWidth=2;ctx.stroke();
+  STATS_DEF.forEach((s,i)=>{const a=(i/n)*2*Math.PI-Math.PI/2,v=(stats[s.key]||0)/100,x=cx+Math.cos(a)*r*v,y=cy+Math.sin(a)*r*v;ctx.beginPath();ctx.arc(x,y,4,0,2*Math.PI);ctx.fillStyle=s.color;ctx.fill();const lx=cx+Math.cos(a)*(r+13),ly=cy+Math.sin(a)*(r+13);ctx.fillStyle='rgba(255,255,255,0.7)';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(s.emoji,lx,ly);});
+}
+
+// ============================================================
+// QUESTS
+// ============================================================
+function getCatColor(cat){const m={필수:'#fc5c7d',학습:'#5caafc',관계:'#ffd700',이벤트:'#fc9c5c',사회참여:'#5cfc8a'};return m[cat]||'var(--text2)';}
+function getCatLabel(cat){const m={필수:'📝 필수',학습:'📚 학습',관계:'🤝 관계',이벤트:'🎪 이벤트',사회참여:'🌍 사회참여'};return m[cat]||cat;}
+function getStatDef(key){return STATS_DEF.find(s=>s.key===key)||STATS_DEF[0];}
+function getStarHtml(star){return '⭐'.repeat(star||1);}
+
+function renderQuests(cat){
+  activeFilter=cat;
+  const list=document.getElementById('quest-list');
+  const filtered=cat==='all'?QUESTS:QUESTS.filter(q=>q.cat===cat);
+  const nonReqCount = records.filter(r=>{
+    const pq=QUESTS.find(x=>x.id===r.questId)||QUESTS.find(x=>x.subQuests&&x.subQuests.some(sq=>sq.id===r.questId));
+    return !pq||!pq.required;
+  }).length;
+  const maxReached=nonReqCount>=MAX_QUESTS;
+  list.innerHTML=filtered.map(q=>{
+    const hasSubQuests=q.subQuests&&q.subQuests.length>0;
+    const done=hasSubQuests
+      ?q.subQuests.some(sq=>records.find(r=>r.questId===sq.id))
+      :records.find(r=>r.questId===q.id);
+    const reqKeys=hasSubQuests?[]:Object.keys(q.req);
+    const isReqQ = q.required || false;
+    const shouldDisable = maxReached && !done && !isReqQ;
+    return `<div class="quest-item${done?' done':''}${shouldDisable?' disabled':''}" onclick="${shouldDisable?'showMaxAlert()':("openQuest('"+q.id+"')")}">
+      <div style="display:flex;align-items:flex-start;gap:11px;">
+        <span style="font-size:26px;flex-shrink:0">${q.emoji}</span>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+            <div class="quest-category" style="color:${getCatColor(q.cat)};margin-bottom:0">${getCatLabel(q.cat)}</div>
+            ${q.required?'<span style="background:rgba(252,92,125,0.15);border:1px solid rgba(252,92,125,0.4);border-radius:4px;padding:1px 5px;font-size:8px;color:#fc5c7d;font-family:\'Press Start 2P\',monospace;">필수</span>':''}
+            <span style="margin-left:auto;font-size:10px;">${getStarHtml(q.star)}</span>
+          </div>
+          <div class="quest-name">${q.name}</div>
+          <div class="quest-req">
+            ${hasSubQuests
+              ?'<span style="font-size:11px;color:var(--accent3);">📋 과목/계열 선택 가능</span>'
+              :reqKeys.map(k=>`<span class="req-tag" style="border-color:${getStatDef(k).color};color:${getStatDef(k).color}">${getStatDef(k).emoji} ${getStatDef(k).abbr}</span>`).join('')
+            }
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function filterQuests(cat,btn){document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderQuests(cat);}
+function showMaxAlert(){alert('최대 '+MAX_QUESTS+'개까지 도전할 수 있어요!\n기록탭에서 도전 현황을 확인해봐요.');}
+
+// ============================================================
+// QUEST MODAL
+// ============================================================
+function openQuest(id){
+  const q=QUESTS.find(x=>x.id===id);
+  if(!q) return;
+  const hasSubQuests=q.subQuests&&q.subQuests.length>0;
+  const done=hasSubQuests?q.subQuests.find(sq=>records.find(r=>r.questId===sq.id)):records.find(r=>r.questId===id);
+  // 필수 퀘스트 여부 확인
+  const isReq = q.required || REQUIRED_QUEST_IDS.some(rid=>{
+    const rq=QUESTS.find(x=>x.id===rid);
+    return rq&&rq.subQuests&&rq.subQuests.some(sq=>sq.id===q.id);
+  });
+  const nonReqDone = records.filter(r=>{
+    const pq=QUESTS.find(x=>x.id===r.questId)||QUESTS.find(x=>x.subQuests&&x.subQuests.some(sq=>sq.id===r.questId));
+    return !pq||!pq.required;
+  }).length;
+  if(!done&&!isReq&&nonReqDone>=MAX_QUESTS){showMaxAlert();return;}
+  if(hasSubQuests){
+    if(done){currentQuest={...q,...done,req:done.req,jobs:done.jobs};const doneRec=records.find(r=>r.questId===done.id);showResult(doneRec,true);return;}
+    openSubQuestModal(q);return;
+  }
+  if(done){currentQuest=q;showResult(done,true);return;}
+  currentQuest=q;
+  openQuestModalContent(q);
+  document.getElementById('quest-modal').classList.add('open');
+}
+
+function openQuestModalContent(q){
+  document.getElementById('modal-category').innerHTML='<span style="color:'+getCatColor(q.cat)+'">'+getCatLabel(q.cat)+'</span>';
+  document.getElementById('modal-title').textContent=q.emoji+' '+q.name;
+  document.getElementById('modal-desc').textContent=q.desc;
+  const tags=document.getElementById('modal-stat-tags');
+  tags.innerHTML='<div class="stat-tag-row">'+Object.keys(q.req).map(k=>{const sd=getStatDef(k);return '<span class="stat-tag" style="color:'+sd.color+';border-color:'+sd.color+'">'+sd.emoji+' '+sd.abbr+'</span>';}).join('')+'</div>';
+  const names=Object.keys(q.req).map(k=>getStatDef(k).name);
+  document.getElementById('modal-comment').innerHTML='💡 <strong>'+names.join(', ')+'</strong> 능력이 중요한 활동이에요.<br>도전해보고 결과를 통해 나의 강점과 보완점을 확인해봐요!';
+}
+
+function openSubQuestModal(q){
+  document.getElementById('sub-quest-category').innerHTML='<span style="color:'+getCatColor(q.cat)+'">'+getCatLabel(q.cat)+'</span>';
+  document.getElementById('sub-quest-title').textContent=q.emoji+' '+q.name;
+  document.getElementById('sub-quest-desc').textContent=q.desc;
+  const listEl=document.getElementById('sub-quest-list');
+  listEl.innerHTML=q.subQuests.map(sq=>{
+    const alreadyDone=records.find(r=>r.questId===sq.id);
+    const reqKeys=Object.keys(sq.req);
+    return '<div onclick="'+(alreadyDone?'':'selectSubQuest(\''+q.id+'\',\''+sq.id+'\')')+'" style="background:var(--panel2);border:2px solid '+(alreadyDone?'var(--green)':'var(--border)')+';border-radius:12px;padding:13px 15px;cursor:'+(alreadyDone?'default':'pointer')+';transition:border-color 0.2s;"'
+      +(alreadyDone?'':' onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'"')+'>'
+      +'<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:5px;">'+sq.name+(alreadyDone?'<span style="margin-left:8px;font-size:8px;color:var(--green);font-family:\'Press Start 2P\',monospace;">✓ 완료</span>':'')+'</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:5px;">'+reqKeys.map(k=>'<span class="req-tag" style="border-color:'+getStatDef(k).color+';color:'+getStatDef(k).color+'">'+getStatDef(k).emoji+' '+getStatDef(k).abbr+'</span>').join('')+'</div>'
+    +'</div>';
+  }).join('');
+  closeModal('quest-modal');
+  document.getElementById('sub-quest-modal').classList.add('open');
+}
+
+function selectSubQuest(parentId,subId){
+  const parent=QUESTS.find(q=>q.id===parentId);
+  const sub=parent.subQuests.find(sq=>sq.id===subId);
+  currentQuest={...parent,id:subId,name:parent.name+' — '+sub.name,req:sub.req,jobs:sub.jobs};
+  closeModal('sub-quest-modal');
+  const done=records.find(r=>r.questId===subId);
+  if(done){showResult(done,true);return;}
+  openQuestModalContent(currentQuest);
+  document.getElementById('quest-modal').classList.add('open');
+}
+
+// ============================================================
+// GRADE SYSTEM
+// ============================================================
+function getGrade(pct){for(let i=GRADES.length-1;i>=0;i--){if(pct>=GRADES[i].min)return GRADES[i];}return GRADES[0];}
+
+function calcFulfillment(quest){
+  const req=quest.req||{};
+  let totalReq=0,totalScore=0;
+  Object.entries(req).forEach(([k,v])=>{totalReq+=v;totalScore+=Math.min(stats[k]||0,v);});
+  return totalReq===0?100:Math.round((totalScore/totalReq)*100);
+}
+
+function checkStatPenalty(quest){
+  const shortItems=[];
+  Object.entries(quest.req||{}).forEach(([k,v])=>{if((stats[k]||0)<v*0.6)shortItems.push(getStatDef(k).name);});
+  return shortItems;
+}
+
+function checkExcellent(quest){
+  const entries=Object.entries(quest.req||{});
+  if(entries.length===0)return false;
+  return entries.every(([k,v])=>(stats[k]||0)>=v*1.5);
+}
+
+function checkBuffBonus(quest,extraBoost){
+  extraBoost=extraBoost||0;
+  const questStats=Object.keys(quest.req||{});
+  for(const buffId of selectedBuffs){
+    const buff=BUFFS.find(b=>b.id===buffId);
+    if(!buff) continue;
+    const isRelated=buff.related.length>0&&buff.related.some(r=>questStats.includes(r));
+    if(isRelated&&buff.specialChance>0&&Math.random()*100<buff.specialChance+extraBoost)
+      return {...buff,triggeredMsg:buff.specialMsg,isSpecial:true};
+    if(buff.globalChance>0&&Math.random()*100<buff.globalChance+extraBoost)
+      return {...buff,triggeredMsg:buff.globalMsg,isSpecial:false};
+  }
+  return null;
+}
+
+function attemptQuest(){
+  closeModal('quest-modal');
+  const q=currentQuest;
+  // 필수 퀘스트는 MAX_QUESTS 제한 적용 안 함
+  const isRequiredQuest = q.required || REQUIRED_QUEST_IDS.some(rid => {
+    const rq = QUESTS.find(x=>x.id===rid);
+    return rq && rq.subQuests && rq.subQuests.some(sq=>sq.id===q.id);
+  });
+  const nonRequiredDone = records.filter(r => {
+    const parentQ = QUESTS.find(x=>x.id===r.questId) ||
+      QUESTS.find(x=>x.subQuests&&x.subQuests.some(sq=>sq.id===r.questId));
+    return !parentQ || !parentQ.required;
+  }).length;
+
+  const pct=calcFulfillment(q);
+  let baseGrade=getGrade(pct);
+  const shortItems=checkStatPenalty(q);
+  let penaltyMsg='',penaltyApplied=false;
+  if(shortItems.length>=2){const idx=GRADES.findIndex(g=>g.id===baseGrade.id);if(idx>0)baseGrade=GRADES[idx-1];penaltyApplied=true;penaltyMsg=shortItems.join(', ')+' 능력이 많이 부족해서 한 단계 내려갔어.';}
+  else if(shortItems.length===1){penaltyMsg='앞으로 이 활동을 더 잘하려면 <strong>'+shortItems[0]+'</strong> 능력을 높이는 게 도움이 될 수 있어요!';}
+  const isExcellent=checkExcellent(q);
+  const triggeredBuff=checkBuffBonus(q,isExcellent?7:0);
+  let finalGrade=baseGrade;
+  let buffTriggered=false;
+  if(triggeredBuff){buffTriggered=true;const idx=GRADES.findIndex(g=>g.id===baseGrade.id);if(baseGrade.id==='과일나무')finalGrade=GRADES[4];else if(idx<GRADES.length-2)finalGrade=GRADES[idx+1];}
+  const rec={
+    questId:q.id,questName:q.name,emoji:q.emoji,
+    grade:finalGrade.id,gradeEmoji:finalGrade.emoji,baseGrade:baseGrade.id,
+    buffTriggered,buffLabel:triggeredBuff?triggeredBuff.label:null,buffMsg:triggeredBuff?triggeredBuff.triggeredMsg:null,
+    penaltyMsg,penaltyApplied,isExcellent,pct,cat:q.cat,jobs:q.jobs,
+    timestamp:new Date().toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})
+  };
+  records=records.filter(r=>r.questId!==q.id);
+  records.unshift(rec);
+  showResult(rec,false);
+  renderQuests(activeFilter);
+  updateRecordScreen();
+}
+
+function showResult(rec,isDone){
+  const q=currentQuest||QUESTS.find(x=>x.id===rec.questId)||(()=>{for(const quest of QUESTS){if(quest.subQuests){const s=quest.subQuests.find(sq=>sq.id===rec.questId);if(s)return{...quest,...s,req:s.req,jobs:s.jobs};}}})();
+  const grade=GRADES.find(g=>g.id===rec.grade)||GRADES[0];
+  const badge=document.getElementById('result-done-badge');
+  if(badge)badge.style.display=isDone?'block':'none';
+  document.getElementById('result-emoji').textContent=grade.emoji;
+  document.getElementById('result-outcome').textContent=rec.grade;
+  document.getElementById('result-outcome').style.color=grade.color;
+  let feedback=grade.msg;
+
+  // 새싹·어린나무 대안 제시 문구
+  const altMsg = getAlternativeMsg(rec.grade);
+  if(altMsg) feedback += altMsg;
+
+  if(rec.isExcellent)feedback+='<br><br><div style="background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.4);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--gold);">⭐ <strong>엑설런트!</strong> 모든 능력치를 훨씬 웃도는 진짜 강점 영역이야!<br>생활습관 버프 발동 확률이 높아졌어!</div>';
+  if(rec.penaltyMsg){if(rec.penaltyApplied)feedback+='<br><br><div style="background:rgba(252,92,92,0.15);border:2px solid rgba(252,92,92,0.6);border-radius:10px;padding:11px 15px;font-size:13px;color:var(--fail);font-weight:600;">⚠️ '+rec.penaltyMsg+'</div>';else feedback+='<br><br><div style="background:rgba(252,184,92,0.15);border:2px solid rgba(252,184,92,0.6);border-radius:10px;padding:11px 15px;font-size:13px;color:var(--warn);font-weight:600;">💡 '+rec.penaltyMsg+'</div>';}
+  if(rec.buffTriggered)feedback+='<br><br><div style="background:rgba(252,92,252,0.12);border:1px solid rgba(252,92,252,0.4);border-radius:10px;padding:10px 14px;font-size:13px;color:#fc5cfc;">⚡ <strong>생활습관 버프 발동!</strong><br>"'+rec.buffLabel+'" — '+(rec.buffMsg||'습관이 좋은 영향을 미쳤어요!')+(rec.baseGrade!==rec.grade?'<br><strong>'+rec.baseGrade+' → '+rec.grade+' 한 등급 UP! 🎉</strong>':'')+'</div>';
+  feedback+='<br><br>관련 직업: <strong>'+(rec.jobs||[]).slice(0,3).join(', ')+'</strong>';
+  document.getElementById('result-feedback').innerHTML=feedback;
+  const compareWrap=document.getElementById('result-stat-compare-wrap');
+  const compareEl=document.getElementById('result-stat-compare');
+  compareWrap.style.display='block';
+  const reqData=q?(q.req||{}):{};
+  compareEl.innerHTML=Object.entries(reqData).map(([k,v])=>{
+    const sd=getStatDef(k),mine=stats[k]||0,over=mine>=v;
+    return '<div class="stat-compare-row"><div class="stat-compare-label">'+sd.emoji+' '+sd.abbr+'</div>'
+      +'<div style="flex:1;height:9px;background:var(--border);border-radius:5px;position:relative;overflow:visible;">'
+        +'<div style="width:'+Math.min(100,mine)+'%;height:100%;border-radius:5px;background:'+(over?sd.color:'var(--fail)')+'"></div>'
+        +'<div style="position:absolute;top:-4px;height:17px;width:3px;border-radius:2px;background:var(--gold);left:'+Math.min(100,v)+'%"></div>'
+      +'</div>'
+      +'<div style="font-size:11px;font-weight:700;color:'+(over?'var(--success)':'var(--fail)')+';width:68px;text-align:right;white-space:nowrap;">내'+mine+' / 필'+v+'</div>'
+    +'</div>';
+  }).join('');
+  document.getElementById('result-career-hint').innerHTML='<div style="display:flex;flex-wrap:wrap;gap:5px;justify-content:center">'+(rec.jobs||[]).map(j=>'<span class="result-strong-tag" style="color:'+grade.color+';border-color:'+grade.color+';border:1px solid">'+j+'</span>').join('')+'</div>';
+  document.getElementById('result-modal').classList.add('open');
+}
+
+// ============================================================
+// RECORD SCREEN
+// ============================================================
+function updateRecordScreen(){
+  const list=document.getElementById('record-list');
+  const summary=document.getElementById('record-summary');
+  const actions=document.getElementById('record-actions');
+  const listHeader=document.getElementById('record-list-header');
+  if(records.length===0){
+    list.innerHTML='<div class="empty-record"><span>📭</span>아직 도전한 활동이 없어요.<br>캐릭터 시트에서 퀘스트를 눌러 도전해보세요!</div>';
+    summary.style.display='none';
+    if(actions)actions.style.display='none';
+    if(listHeader)listHeader.style.display='none';
+    const sec=document.getElementById('analysis-section');
+    if(sec)sec.style.display='none';
+    return;
+  }
+  summary.style.display='block';
+  if(actions)actions.style.display='flex';
+  if(listHeader)listHeader.style.display='flex';
+  updateAnalysisSection();
+  const nonReqTotal = records.filter(r=>{
+    const pq=QUESTS.find(x=>x.id===r.questId)||QUESTS.find(x=>x.subQuests&&x.subQuests.some(sq=>sq.id===r.questId));
+    return !pq||!pq.required;
+  }).length;
+  document.getElementById('total-count').textContent=nonReqTotal+'/'+MAX_QUESTS;
+  document.getElementById('total-progress-bar').style.width=Math.min(100,(nonReqTotal/MAX_QUESTS)*100)+'%';
+  const reqDone=REQUIRED_QUEST_IDS.filter(pid=>{
+    const pq=QUESTS.find(q=>q.id===pid);
+    if(pq&&pq.subQuests)return pq.subQuests.some(sq=>records.some(r=>r.questId===sq.id));
+    return records.some(r=>r.questId===pid);
+  }).length;
+  document.getElementById('required-count').textContent=reqDone+'/3';
+  document.getElementById('required-progress-bar').style.width=Math.min(100,(reqDone/3)*100)+'%';
+  const gradeDist={};
+  records.forEach(r=>{gradeDist[r.grade]=(gradeDist[r.grade]||0)+1;});
+  document.getElementById('grade-dist').innerHTML=GRADE_ORDER.filter(g=>gradeDist[g]).map(g=>{const gd=GRADES.find(x=>x.id===g);return '<span style="font-size:11px;font-weight:700;color:'+gd.color+';">'+gd.emoji+gd.id+' ×'+gradeDist[g]+'</span>';}).join('<br>')||'<span style="color:var(--text2);font-size:12px;">아직 없음</span>';
+  const sorted=[...records].sort((a,b)=>GRADE_ORDER.indexOf(a.grade)-GRADE_ORDER.indexOf(b.grade));
+  list.innerHTML=sorted.map((r,idx)=>{
+    const q=QUESTS.find(x=>x.id===r.questId)||(()=>{for(const quest of QUESTS){if(quest.subQuests){const s=quest.subQuests.find(sq=>sq.id===r.questId);if(s)return{...quest,...s,req:s.req};}}})();
+    const reqData=q?(q.req||{}):{};
+    const statHtml=Object.entries(reqData).map(([k,v])=>{const sd=getStatDef(k),mine=stats[k]||0,over=mine>=v;
+      return '<div style="display:flex;align-items:center;gap:7px;margin-bottom:7px;">'
+        +'<span style="font-family:\'Press Start 2P\',monospace;font-size:7px;color:'+sd.color+';width:40px;flex-shrink:0;">'+sd.abbr+'</span>'
+        +'<div style="flex:1;height:7px;background:var(--border);border-radius:4px;position:relative;overflow:visible;">'
+          +'<div style="width:'+Math.min(100,mine)+'%;height:100%;border-radius:4px;background:'+(over?sd.color:'var(--fail)')+'"></div>'
+          +'<div style="position:absolute;top:-3px;height:13px;width:2px;background:var(--gold);left:'+Math.min(100,v)+'%;border-radius:1px;"></div>'
+        +'</div>'
+        +'<span style="font-size:10px;font-weight:700;color:'+(over?'var(--success)':'var(--fail)')+';width:56px;text-align:right;white-space:nowrap;">내'+mine+'/필'+v+'</span>'
+      +'</div>';
+    }).join('');
+    const grade=GRADES.find(g=>g.id===r.grade)||GRADES[0];
+    return '<div class="record-item" id="rec-item-'+idx+'">'
+      +'<div class="record-item-header" onclick="toggleRecord('+idx+')">'
+        +'<span class="record-emoji">'+r.emoji+'</span>'
+        +'<div style="flex:1;">'
+          +'<div class="record-quest-name">'+r.questName+'</div>'
+          +'<div class="record-outcome-text" style="color:'+grade.color+';">'+grade.emoji+' '+r.grade+'</div>'
+        +'</div>'
+        +'<div class="record-date" style="margin-right:7px;">'+r.timestamp+'</div>'
+        +'<span class="record-toggle">▼</span>'
+      +'</div>'
+      +'<div class="record-item-detail" id="rec-detail-'+idx+'">'
+        +'<div style="padding-top:13px;">'
+          +'<div style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:11px;border-left:3px solid var(--accent);padding-left:11px;">'+(q?q.desc:'')+'</div>'
+          +'<div style="margin-bottom:9px;"><div style="font-family:\'Press Start 2P\',monospace;font-size:7px;color:var(--text2);margin-bottom:9px;">📊 능력치 분석</div>'+statHtml+'</div>'
+          +(r.isExcellent?'<div style="background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.35);border-radius:8px;padding:7px 11px;margin-bottom:7px;font-size:12px;color:var(--gold);">⭐ 엑설런트! 진짜 강점 영역이에요.</div>':'')
+          +(r.penaltyMsg?'<div style="background:'+(r.penaltyApplied?'rgba(252,92,92,0.1)':'rgba(252,184,92,0.1)')+';border:1px solid '+(r.penaltyApplied?'rgba(252,92,92,0.4)':'rgba(252,184,92,0.4)')+';border-radius:8px;padding:7px 11px;margin-bottom:7px;font-size:12px;color:'+(r.penaltyApplied?'var(--fail)':'var(--warn)')+';">'+(r.penaltyApplied?'⚠️':'💡')+' '+r.penaltyMsg+'</div>':'')
+          +(r.buffTriggered?'<div style="background:rgba(252,92,252,0.1);border:1px solid rgba(252,92,252,0.35);border-radius:8px;padding:7px 11px;margin-bottom:7px;font-size:12px;color:#fc5cfc;">⚡ 버프! "'+r.buffLabel+'"'+(r.baseGrade!==r.grade?' — '+r.baseGrade+' → '+r.grade+' UP 🎉':'')+'</div>':'')
+          +'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:3px;"><span style="font-size:11px;color:var(--text2);margin-right:3px;">관련 직업:</span>'+(r.jobs||[]).slice(0,3).map(j=>'<span class="result-strong-tag" style="font-size:10px;padding:2px 7px;color:var(--accent3);border:1px solid var(--accent3)">'+j+'</span>').join('')+'</div>'
+        +'</div>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+}
+
+// ============================================================
+// 탐색 분석
+// ============================================================
+function updateAnalysisSection() {
+  const section = document.getElementById('analysis-section');
+  const emptyEl = document.getElementById('analysis-empty');
+  const interestEl = document.getElementById('interest-area');
+  const strengthEl = document.getElementById('strength-area');
+  const coreFinding = document.getElementById('core-finding');
+  const coreTagsEl = document.getElementById('core-intel-tags');
+  const coreJobsEl = document.getElementById('core-jobs');
+
+  if(!section) return;
+  section.style.display = 'block';
+
+  if(records.length < 3) {
+    emptyEl.style.display = 'block';
+    coreFinding.style.display = 'none';
+    interestEl.innerHTML = '<div style="font-size:12px;color:var(--text2);text-align:center;padding:12px 0;">아직 데이터가 부족해요</div>';
+    strengthEl.innerHTML = '<div style="font-size:12px;color:var(--text2);text-align:center;padding:12px 0;">아직 데이터가 부족해요</div>';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  // ── 흥미 영역: 도전한 퀘스트의 요구 지능 빈도 집계 (전체 분포 보정) ──
+  const intelCount = {};
+  STATS_DEF.forEach(s => intelCount[s.key] = 0);
+  records.forEach(r => {
+    const q = findQuestById(r.questId);
+    if(!q || !q.req) return;
+    Object.keys(q.req).forEach(k => { intelCount[k] = (intelCount[k]||0) + 1; });
+  });
+  // 전체 퀘스트 등장 비율로 보정 (희소 지능일수록 가중치 높음)
+  const sortedInterest = Object.entries(intelCount)
+    .filter(([,v]) => v > 0)
+    .map(([k, v]) => {
+      const total = INTEL_QUEST_TOTAL[k] || 1;
+      return [k, v, Math.round((v / total) * 100)]; // [key, 원래횟수, 보정점수]
+    })
+    .sort((a,b) => b[2]-a[2])
+    .slice(0,3);
+
+  interestEl.innerHTML = sortedInterest.length > 0
+    ? sortedInterest.map(([key, cnt, score], i) => {
+        const sd = STATS_DEF.find(s=>s.key===key);
+        const intel = INTEL_JOBS[key];
+        const barW = Math.min(100, score); // 보정 점수 기반 바 너비
+        return `<div style="margin-bottom:4px;">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;">
+            <span style="font-size:14px;">${sd.emoji}</span>
+            <span style="font-size:13px;font-weight:700;color:${intel.color};">${intel.name}</span>
+            <span style="font-size:10px;color:var(--text2);margin-left:auto;">${cnt}회 도전</span>
+          </div>
+          <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden;">
+            <div style="width:${barW}%;height:100%;background:${intel.color};border-radius:3px;transition:width 0.6s;"></div>
+          </div>
+        </div>`;
+      }).join('')
+    : '<div style="font-size:12px;color:var(--text2);text-align:center;padding:12px 0;">데이터가 부족해요</div>';
+
+  // ── 강점 영역: 과일나무·세계수 달성 퀘스트의 요구 지능 집계 ──
+  const strongCount = {};
+  STATS_DEF.forEach(s => strongCount[s.key] = 0);
+  const strongGrades = ['과일나무','세계수'];
+  records.filter(r => strongGrades.includes(r.grade)).forEach(r => {
+    const q = findQuestById(r.questId);
+    if(!q || !q.req) return;
+    Object.keys(q.req).forEach(k => { strongCount[k] = (strongCount[k]||0) + 1; });
+  });
+  const sortedStrength = Object.entries(strongCount)
+    .filter(([,v]) => v > 0)
+    .sort((a,b) => b[1]-a[1])
+    .slice(0,2);
+
+  strengthEl.innerHTML = sortedStrength.length > 0
+    ? sortedStrength.map(([key, cnt]) => {
+        const sd = STATS_DEF.find(s=>s.key===key);
+        const intel = INTEL_JOBS[key];
+        return `<div style="display:flex;align-items:center;gap:10px;background:rgba(255,215,0,0.07);border:1px solid rgba(255,215,0,0.25);border-radius:10px;padding:10px 13px;">
+          <span style="font-size:18px;">${sd.emoji}</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:${intel.color};">${intel.name}</div>
+            <div style="font-size:10px;color:var(--text2);">과일나무 이상 ${cnt}회</div>
+          </div>
+          <span style="margin-left:auto;font-size:18px;">🍎</span>
+        </div>`;
+      }).join('')
+    : '<div style="font-size:12px;color:var(--text2);text-align:center;padding:12px 0;">아직 과일나무 이상 달성한<br>퀘스트가 없어요</div>';
+
+  // ── 핵심 발견: 흥미 + 강점 겹치는 지능 ──
+  const interestKeys = new Set(sortedInterest.map(([k,,])=>k));
+  const strengthKeys = new Set(sortedStrength.map(([k])=>k));
+  const coreKeys = [...interestKeys].filter(k => strengthKeys.has(k));
+
+  if(coreKeys.length > 0) {
+    coreFinding.style.display = 'block';
+    // 핵심 지능 태그
+    coreTagsEl.innerHTML = coreKeys.map(k => {
+      const intel = INTEL_JOBS[k];
+      return `<span style="display:inline-flex;align-items:center;gap:5px;background:rgba(124,92,252,0.15);border:1.5px solid ${intel.color};border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;color:${intel.color};">
+        ${intel.emoji} ${intel.name}
+      </span>`;
+    }).join('');
+    // 추천 직업 수집 (중복 제거)
+    const allJobs = [];
+    coreKeys.forEach(k => {
+      INTEL_JOBS[k].jobs.forEach(j => { if(!allJobs.includes(j)) allJobs.push(j); });
+    });
+    coreJobsEl.innerHTML = allJobs.slice(0,6).map(j =>
+      `<span style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--text);">${j}</span>`
+    ).join('');
+  } else if(sortedStrength.length > 0) {
+    // 겹치진 않지만 강점은 있는 경우
+    coreFinding.style.display = 'block';
+    coreTagsEl.innerHTML = `<div style="font-size:13px;color:var(--text2);">흥미와 강점이 다른 영역에 있어요.<br>강점 영역을 살려볼 수 있는 직업을 탐색해봐요!</div>`;
+    const strongJobs = [];
+    sortedStrength.forEach(([k]) => {
+      INTEL_JOBS[k].jobs.forEach(j => { if(!strongJobs.includes(j)) strongJobs.push(j); });
+    });
+    coreJobsEl.innerHTML = strongJobs.slice(0,6).map(j =>
+      `<span style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--text);">${j}</span>`
+    ).join('');
+  } else {
+    coreFinding.style.display = 'none';
+  }
+}
+
+// ============================================================
+// 실패 시 대안 제시 문구
+// ============================================================
+function getAlternativeMsg(gradeId) {
+  if(gradeId !== '새싹' && gradeId !== '어린나무') return '';
+
+  // 흥미 영역 계산 (전체 분포 보정)
+  const intelCount = {};
+  STATS_DEF.forEach(s => intelCount[s.key] = 0);
+  records.forEach(r => {
+    const q = findQuestById(r.questId);
+    if(!q || !q.req) return;
+    Object.keys(q.req).forEach(k => { intelCount[k] = (intelCount[k]||0) + 1; });
+  });
+  const topInterest = Object.entries(intelCount)
+    .filter(([,v]) => v > 0)
+    .map(([k, v]) => [k, Math.round((v / (INTEL_QUEST_TOTAL[k]||1)) * 100)])
+    .sort((a,b) => b[1]-a[1])
+    .slice(0,2)
+    .map(([k]) => INTEL_JOBS[k]);
+
+  // 강점 영역 계산 (과일나무·세계수 달성 퀘스트의 요구 지능)
+  const strongCount = {};
+  STATS_DEF.forEach(s => strongCount[s.key] = 0);
+  records.filter(r => ['과일나무','세계수'].includes(r.grade)).forEach(r => {
+    const q = findQuestById(r.questId);
+    if(!q || !q.req) return;
+    Object.keys(q.req).forEach(k => { strongCount[k] = (strongCount[k]||0) + 1; });
+  });
+  const topStrength = Object.entries(strongCount)
+    .filter(([,v]) => v > 0)
+    .sort((a,b) => b[1]-a[1])
+    .slice(0,2)
+    .map(([k]) => INTEL_JOBS[k]);
+
+  const hasInterest = records.length >= 3 && topInterest.length > 0;
+  const hasStrength = topStrength.length > 0;
+
+  let hintMsg = '';
+  let encourageMsg = '';
+
+  // 케이스별 힌트 문구
+  if(hasInterest && hasStrength) {
+    // 케이스 1: 둘 다 있음
+    const interestNames = topInterest.map(i => '<strong style="color:'+i.color+'">'+i.name+'</strong>').join(', ');
+    const strengthNames = topStrength.map(i => '<strong style="color:'+i.color+'">'+i.name+'</strong>').join(', ');
+    hintMsg = '네가 자주 도전했던 ' + interestNames + ' 관련 활동들을 더 살펴봐.<br>'
+      + '또는 강점 영역인 ' + strengthNames + ' 이 필요한 퀘스트에도 도전해봐 — 강점을 살릴 수 있는 분야일 수 있어!';
+  } else if(hasInterest && !hasStrength) {
+    // 케이스 2: 흥미만 있음
+    const interestNames = topInterest.map(i => '<strong style="color:'+i.color+'">'+i.name+'</strong>').join(', ');
+    hintMsg = '네가 자주 도전했던 ' + interestNames + ' 관련 활동들을 더 살펴봐.<br>'
+      + '아직 강점 영역을 찾는 중이야 — 계속 다양한 퀘스트에 도전해봐!';
+  } else if(!hasInterest && hasStrength) {
+    // 케이스 3: 강점만 있음
+    const strengthNames = topStrength.map(i => '<strong style="color:'+i.color+'">'+i.name+'</strong>').join(', ');
+    hintMsg = '강점 영역인 ' + strengthNames + ' 이 필요한 퀘스트에 도전해봐 — 강점을 살릴 수 있는 분야일 수 있어!<br>'
+      + '더 다양한 활동에 도전하면 흥미 영역도 보일 거야!';
+  } else {
+    // 케이스 4: 둘 다 없음 — 일반 격려만
+    hintMsg = '';
+  }
+
+  // 등급별 격려 문구
+  if(gradeId === '새싹') {
+    encourageMsg = '🌱 낯선 분야에 도전한 것 자체가 용기야. 이 경험이 나를 더 잘 이해하는 단서가 될 거야.';
+  } else {
+    encourageMsg = '🌿 지금 이 점수가 네 가능성의 전부가 아니야. 흥미와 강점이 만나는 곳에 네 진로의 힌트가 있을지도 몰라!';
+  }
+
+  // 힌트가 있으면 박스로, 없으면 격려만
+  let result = '';
+  if(hintMsg) {
+    result += '<br><br><div style="background:rgba(92,240,252,0.08);border:1px solid rgba(92,240,252,0.3);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text2);line-height:1.8;">'
+      + '💡 <strong style="color:var(--accent3);">탐색 힌트</strong><br>'
+      + hintMsg
+      + '</div>';
+  }
+  result += '<br><br><div style="font-size:13px;color:var(--text2);line-height:1.8;font-style:italic;">'
+    + encourageMsg
+    + '</div>';
+  return result;
+}
+
+function findQuestById(id) {
+  const direct = QUESTS.find(q=>q.id===id);
+  if(direct) return direct;
+  for(const q of QUESTS) {
+    if(q.subQuests) {
+      const sub = q.subQuests.find(sq=>sq.id===id);
+      if(sub) return {...q, req:sub.req, jobs:sub.jobs};
+    }
+  }
+  return null;
+}
+
+function toggleRecord(idx){
+  const h=document.querySelector('#rec-item-'+idx+' .record-item-header');
+  const d=document.getElementById('rec-detail-'+idx);
+  const open=d.classList.contains('open');
+  if(open){d.classList.remove('open');h.classList.remove('open');}
+  else{d.classList.add('open');h.classList.add('open');}
+}
+function expandAllRecords(){document.querySelectorAll('.record-item-detail').forEach((d,i)=>{d.classList.add('open');const h=d.closest('.record-item').querySelector('.record-item-header');if(h)h.classList.add('open');});}
+function collapseAllRecords(){document.querySelectorAll('.record-item-detail').forEach(d=>{d.classList.remove('open');const h=d.closest('.record-item').querySelector('.record-item-header');if(h)h.classList.remove('open');});}
+
+// ============================================================
+// 이미지 저장
+// ============================================================
+function saveCharImage() {
+  const target = document.getElementById('char-card-capture');
+  if(!target) return;
+  const btn = event.target;
+  btn.textContent = '⏳ 저장 중...';
+  btn.disabled = true;
+  html2canvas(target, {
+    backgroundColor: '#0a0a14',
+    scale: 2,
+    useCORS: true,
+    logging: false,
+  }).then(canvas => {
+    const link = document.createElement('a');
+    link.download = playerName + '_캐릭터카드.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    btn.textContent = '📷 캐릭터 카드 저장';
+    btn.disabled = false;
+  }).catch(()=>{
+    alert('저장 중 오류가 발생했어요. 화면 캡처를 이용해주세요.');
+    btn.textContent = '📷 캐릭터 카드 저장';
+    btn.disabled = false;
+  });
+}
+
+function saveAnalysisImage() {
+  const target = document.getElementById('analysis-section');
+  if(!target || target.style.display === 'none') {
+    alert('분석 결과가 아직 없어요! 퀘스트를 3개 이상 도전 후 다시 시도해봐요.');
+    return;
+  }
+  const btn = event.target;
+  btn.textContent = '⏳ 저장 중...';
+  btn.disabled = true;
+
+  // 저장용 임시 래퍼 생성
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position:fixed;top:-9999px;left:-9999px;background:#0a0a14;padding:28px;border-radius:16px;width:700px;';
+  // 헤더 추가
+  const header = document.createElement('div');
+  header.style.cssText = 'font-family:"Press Start 2P",monospace;font-size:9px;color:#5cf0fc;letter-spacing:3px;margin-bottom:16px;';
+  header.textContent = playerName + '의 진로탐색 분석 결과';
+  wrapper.appendChild(header);
+  const clone = target.cloneNode(true);
+  clone.style.display = 'block';
+  wrapper.appendChild(clone);
+  document.body.appendChild(wrapper);
+
+  html2canvas(wrapper, {
+    backgroundColor: '#0a0a14',
+    scale: 2,
+    useCORS: true,
+    logging: false,
+  }).then(canvas => {
+    document.body.removeChild(wrapper);
+    const link = document.createElement('a');
+    link.download = playerName + '_탐색분석.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    btn.textContent = '📊 분석 결과 저장';
+    btn.disabled = false;
+  }).catch(()=>{
+    document.body.removeChild(wrapper);
+    alert('저장 중 오류가 발생했어요. 화면 캡처를 이용해주세요.');
+    btn.textContent = '📊 분석 결과 저장';
+    btn.disabled = false;
+  });
+}
+
+function saveRecordImage(){ saveAnalysisImage(); }
+
+// ============================================================
+// UTILS
+// ============================================================
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+function confirmHome(){
+  if(!confirm('처음 화면으로 돌아가면 현재 기록이 모두 초기화됩니다.\n계속할까요?')) return;
+  resetAll();
+}
+function resetAll(){
+  records=[];stats={};playerName='';selectedBuffs=[];statsLocked=false;statsEditUsed=false;subAnswers={};subScores={};primaryScores={};
+  document.getElementById('nav-bar').style.display='none';
+  document.getElementById('player-name').value='';
+  updateRecordScreen();
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('intro').classList.add('active');
+  window.scrollTo(0,0);
+}
+
+document.querySelectorAll('.modal-overlay').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});});
+</script>
+</body>
+</html>

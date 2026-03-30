@@ -1727,37 +1727,29 @@ document.addEventListener('touchmove', function(e) {
   }
 }, {passive: false});
 
-// 2) 모바일 뒤로가기 버튼 방지
-let backGuardActive = false;
-let backGuardInterval = null;
-
+// 2) 모바일 뒤로가기 — 확인창 방식
 function pushDummyHistory() {
-  for(let i=0; i<5; i++) {
-    history.pushState({page:'game',i}, '', window.location.href);
-  }
+  history.pushState({page:'game'}, '', window.location.href);
 }
 
-function startBackGuard() {
-  if(backGuardActive) return;
-  backGuardActive = true;
-  pushDummyHistory();
-  // 주기적으로 계속 더미 쌓기 (2초마다)
-  backGuardInterval = setInterval(function() {
-    if(playerName) pushDummyHistory();
-  }, 2000);
-}
-
-// 게임 시작 시 가드 활성화
+// 게임 시작 시 더미 1개만 추가
 const _origStartGame = startGame;
 startGame = function() {
   _origStartGame();
-  startBackGuard();
+  pushDummyHistory();
 };
 
-// 뒤로가기 감지 시 즉시 다시 쌓기
+// 뒤로가기 감지 시 확인창 표시
 window.addEventListener('popstate', function(e) {
   if(playerName) {
-    pushDummyHistory();
+    const leave = confirm('게임을 종료하고 나가시겠어요?\n지금까지의 기록이 모두 사라져요.');
+    if(leave) {
+      // 나가기 선택 → 히스토리 뒤로 이동
+      history.back();
+    } else {
+      // 유지 선택 → 더미 다시 추가
+      pushDummyHistory();
+    }
   }
 });
 

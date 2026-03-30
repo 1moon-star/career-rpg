@@ -1402,62 +1402,156 @@ function collapseAllRecords(){document.querySelectorAll('.record-item-detail').f
 // 이미지 저장
 // ============================================================
 function saveCharImage() {
-  const target = document.getElementById('char-card-capture');
-  if(!target) return;
   const btn = event.target;
   btn.textContent = '⏳ 저장 중...';
   btn.disabled = true;
 
-  // 저장용 래퍼 — 배경 포함 전체 카드 복제
-  const wrapper = document.createElement('div');
-  wrapper.style.cssText = [
-    'position:fixed',
-    'top:-9999px',
-    'left:-9999px',
-    'background:#0a0a14',
-    'padding:20px',
-    'border-radius:16px',
-    'width:' + target.offsetWidth + 'px',
-  ].join(';');
+  const W = 420, PAD = 28;
+  const cls = getClass();
 
-  const clone = target.cloneNode(true);
-  clone.style.position = 'static';
-  clone.style.maxHeight = 'none';
-  clone.style.overflow = 'visible';
+  // 능력치 바 높이 계산
+  const statH = STATS_DEF.length * 28;
+  // 버프 태그 높이
+  const buffH = selectedBuffs.length > 0 ? 40 : 0;
+  // 레이더 높이
+  const radarH = 240;
+  // 전체 높이
+  const H = PAD + 60 + 10 + 20 + 8 + 20 + buffH + 20 + radarH + 16 + statH + PAD;
 
-  // 레이더 캔버스 복사 (canvas는 cloneNode로 복사 안 됨)
-  const origCanvas = document.getElementById('radar-canvas');
-  const cloneCanvas = clone.querySelector('#radar-canvas');
-  if(origCanvas && cloneCanvas) {
-    cloneCanvas.width = origCanvas.width;
-    cloneCanvas.height = origCanvas.height;
-    const ctx = cloneCanvas.getContext('2d');
-    ctx.drawImage(origCanvas, 0, 0);
+  const canvas = document.createElement('canvas');
+  const scale = 2;
+  canvas.width = W * scale;
+  canvas.height = H * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+
+  // 배경
+  ctx.fillStyle = '#0a0a14';
+  ctx.fillRect(0, 0, W, H);
+
+  // 카드 배경
+  ctx.fillStyle = '#12121e';
+  ctx.strokeStyle = '#2a2a4a';
+  ctx.lineWidth = 2;
+  roundRect(ctx, PAD/2, PAD/2, W-PAD, H-PAD, 16);
+  ctx.fill(); ctx.stroke();
+
+  // 상단 그라디언트 라인
+  const grad = ctx.createLinearGradient(PAD/2, 0, W-PAD/2, 0);
+  grad.addColorStop(0, '#7c5cfc');
+  grad.addColorStop(1, '#fc5c7d');
+  ctx.fillStyle = grad;
+  ctx.fillRect(PAD/2, PAD/2, W-PAD, 3);
+
+  let y = PAD + 16;
+
+  // 아바타 이모지
+  ctx.font = '52px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(cls.emoji, W/2, y + 52);
+  y += 64;
+
+  // 이름
+  ctx.font = 'bold 20px "Noto Sans KR", sans-serif';
+  ctx.fillStyle = '#ffd700';
+  ctx.textAlign = 'center';
+  ctx.fillText(playerName, W/2, y + 20);
+  y += 28;
+
+  // 클래스명
+  ctx.font = 'bold 13px "Noto Sans KR", sans-serif';
+  ctx.fillStyle = '#5cf0fc';
+  ctx.fillText(cls.cls, W/2, y + 14);
+  y += 22;
+
+  // 생활습관 버프
+  if(selectedBuffs.length > 0) {
+    ctx.font = '11px "Noto Sans KR", sans-serif';
+    ctx.fillStyle = '#9090b8';
+    const buffLabels = selectedBuffs.map(id => {
+      const b = BUFFS.find(x=>x.id===id);
+      return b ? '⚡ ' + b.label : '';
+    }).join('  ');
+    ctx.fillText(buffLabels, W/2, y + 14);
+    y += 24;
   }
 
-  wrapper.appendChild(clone);
-  document.body.appendChild(wrapper);
+  // 구분선
+  ctx.strokeStyle = '#2a2a4a';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD, y); ctx.lineTo(W-PAD, y);
+  ctx.stroke();
+  y += 16;
 
-  html2canvas(wrapper, {
-    backgroundColor: '#0a0a14',
-    scale: 2,
-    useCORS: true,
-    logging: false,
-    allowTaint: true,
-  }).then(canvas => {
-    document.body.removeChild(wrapper);
-    const link = document.createElement('a');
-    link.download = playerName + '_캐릭터카드.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    btn.textContent = '📷 캐릭터 카드 저장';
-    btn.disabled = false;
-  }).catch(err => {
-    document.body.removeChild(wrapper);
-    alert('저장 중 오류가 발생했어요. 화면 캡처를 이용해주세요.');
-    btn.textContent = '📷 캐릭터 카드 저장';
-    btn.disabled = false;
+  // 레이더 차트 복사
+  const radarSrc = document.getElementById('radar-canvas');
+  if(radarSrc) {
+    const rW = 200, rH = 200;
+    ctx.drawImage(radarSrc, (W-rW)/2, y, rW, rH);
+    y += rH + 16;
+  } else {
+    y += 16;
+  }
+
+  // 미니 스탯 바
+  STATS_DEF.forEach(s => {
+    const val = stats[s.key] || 0;
+    const barW = W - PAD*2 - 60 - 36;
+
+    ctx.font = '9px "Press Start 2P", monospace';
+    ctx.fillStyle = '#9090b8';
+    ctx.textAlign = 'left';
+    ctx.fillText(s.abbr, PAD, y + 10);
+
+    // 바 배경
+    ctx.fillStyle = '#2a2a4a';
+    roundRect(ctx, PAD+40, y+2, barW, 10, 5);
+    ctx.fill();
+
+    // 바 채우기
+    ctx.fillStyle = s.color;
+    if(val > 0) {
+      roundRect(ctx, PAD+40, y+2, barW*(val/100), 10, 5);
+      ctx.fill();
+    }
+
+    // 수치
+    ctx.font = 'bold 12px "Noto Sans KR", sans-serif';
+    ctx.fillStyle = '#e8e8f8';
+    ctx.textAlign = 'right';
+    ctx.fillText(val, W-PAD, y + 11);
+
+    y += 26;
   });
+
+  // 하단 워터마크
+  ctx.font = '10px "Noto Sans KR", sans-serif';
+  ctx.fillStyle = '#3a3a5a';
+  ctx.textAlign = 'center';
+  ctx.fillText('진로탐색 RPG — 나를 찾는 모험', W/2, H - 10);
+
+  // 저장
+  const link = document.createElement('a');
+  link.download = playerName + '_캐릭터카드.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  btn.textContent = '📷 캐릭터 카드 저장';
+  btn.disabled = false;
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
 }
 
 function saveAnalysisImage() {

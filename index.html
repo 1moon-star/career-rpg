@@ -102,7 +102,17 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   #char-card-capture{display:none!important;}
   #char-sheet-header{display:none!important;}
   #mobile-char-bar{display:block!important;}
-  #char-sheet > div{padding-top:130px!important;}
+  #char-sheet > div{padding-top:12px!important;}
+  /* 필터 버튼 영역을 고정바 아래에 고정 */
+  .char-right{padding-top:0;}
+  #category-filters-wrap{
+    position:sticky;
+    top:62px;
+    z-index:35;
+    background:var(--bg);
+    padding:10px 0 8px 0;
+    margin-bottom:0;
+  }
 
   /* 레이더 차트 숨김 */
   .canvas-wrap{display:none;}
@@ -364,7 +374,7 @@ canvas{max-width:100%;}
         </div>
       </div>
       <div class="char-right">
-        <div style="margin-bottom:14px;">
+        <div id="category-filters-wrap">
           <div style="display:flex;gap:7px;flex-wrap:wrap;" id="category-filters">
             <button class="filter-btn active" onclick="filterQuests('all',this)">전체</button>
             <button class="filter-btn" onclick="filterQuests('필수',this)">📝 필수</button>
@@ -1717,22 +1727,34 @@ document.addEventListener('touchmove', function(e) {
   }
 }, {passive: false});
 
-// 2) 모바일 뒤로가기 버튼 방지 — history 트릭
+// 2) 모바일 뒤로가기 버튼 방지
+let backGuardActive = false;
+let backGuardInterval = null;
+
 function pushDummyHistory() {
-  // 더미를 3개씩 쌓아서 여러 번 눌러도 버팀
-  history.pushState({page:'game',i:1}, '', window.location.href);
-  history.pushState({page:'game',i:2}, '', window.location.href);
-  history.pushState({page:'game',i:3}, '', window.location.href);
+  for(let i=0; i<5; i++) {
+    history.pushState({page:'game',i}, '', window.location.href);
+  }
 }
 
-// 게임 시작 시 더미 히스토리 추가
+function startBackGuard() {
+  if(backGuardActive) return;
+  backGuardActive = true;
+  pushDummyHistory();
+  // 주기적으로 계속 더미 쌓기 (2초마다)
+  backGuardInterval = setInterval(function() {
+    if(playerName) pushDummyHistory();
+  }, 2000);
+}
+
+// 게임 시작 시 가드 활성화
 const _origStartGame = startGame;
 startGame = function() {
   _origStartGame();
-  pushDummyHistory();
+  startBackGuard();
 };
 
-// 뒤로가기 감지 시 즉시 다시 3개 추가
+// 뒤로가기 감지 시 즉시 다시 쌓기
 window.addEventListener('popstate', function(e) {
   if(playerName) {
     pushDummyHistory();

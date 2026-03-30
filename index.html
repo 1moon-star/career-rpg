@@ -13,6 +13,7 @@
   --success:#5cfc8a; --fail:#fc5c5c; --warn:#fcb85c;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
+html, body{overscroll-behavior-y:contain;}
 body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh;overflow-x:hidden;}
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(124,92,252,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(124,92,252,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
 
@@ -101,7 +102,9 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   #char-card-capture{display:none!important;}
   #char-sheet-header{display:none!important;}
   #mobile-char-bar{display:block!important;}
-  #char-sheet > div{padding-top:76px!important;}
+  #char-sheet > div{padding-top:80px!important;}
+  /* 필터 버튼 영역 상단 여백 추가 */
+  #category-filters{margin-top:4px;}
 
   /* 레이더 차트 숨김 */
   .canvas-wrap{display:none;}
@@ -1698,6 +1701,30 @@ function resetAll(){
 }
 
 document.querySelectorAll('.modal-overlay').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});});
+
+// 의도치 않은 새로고침 방지
+// 1) 브라우저 뒤로가기/새로고침 경고
+window.addEventListener('beforeunload', function(e) {
+  if(records.length > 0 || statsLocked) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+// 2) 모바일 풀다운 새로고침 방지
+let lastTouchY = 0;
+document.addEventListener('touchstart', function(e) {
+  lastTouchY = e.touches[0].clientY;
+}, {passive: true});
+
+document.addEventListener('touchmove', function(e) {
+  const touchY = e.touches[0].clientY;
+  const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+  // 최상단에서 아래로 당기는 경우만 방지
+  if(scrollTop === 0 && touchY > lastTouchY && (records.length > 0 || statsLocked)) {
+    e.preventDefault();
+  }
+}, {passive: false});
 </script>
 </body>
 </html>

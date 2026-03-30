@@ -1742,14 +1742,18 @@ startGame = function() {
 // 뒤로가기 감지 시 확인창 표시
 window.addEventListener('popstate', function(e) {
   if(playerName) {
-    const leave = confirm('게임을 종료하고 나가시겠어요?\n지금까지의 기록이 모두 사라져요.');
-    if(leave) {
-      // 나가기 선택 → 히스토리 뒤로 이동
-      history.back();
-    } else {
-      // 유지 선택 → 더미 다시 추가
-      pushDummyHistory();
-    }
+    // 먼저 더미를 즉시 추가해서 히스토리 확보
+    pushDummyHistory();
+    // 약간 딜레이 후 확인창 (모바일 브라우저 비동기 처리 대응)
+    setTimeout(function() {
+      const leave = confirm('게임을 종료하고 나가시겠어요?\n지금까지의 기록이 모두 사라져요.');
+      if(leave) {
+        // 나가기 선택 → 더미 제거 후 실제로 나가기
+        playerName = '';
+        history.go(-(history.length));
+      }
+      // 취소 선택 → 이미 더미가 추가되어 있으므로 그대로 유지
+    }, 50);
   }
 });
 

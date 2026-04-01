@@ -20,6 +20,7 @@
   --shadow: rgba(139,111,78,0.12);
 }
 * { margin:0; padding:0; box-sizing:border-box; }
+html, body { overscroll-behavior-y: contain; }
 body {
   font-family: 'Noto Sans KR', sans-serif;
   background: var(--bg);
@@ -686,6 +687,7 @@ function showScreen(id) {
 }
 
 function goIntro() {
+  testStarted = false;
   document.getElementById('app-header').style.display = 'none';
   showScreen('intro');
 }
@@ -716,6 +718,8 @@ function updateHeader(title, sub, showProgress, current, total) {
 // 다중지능 검사
 // ============================================================
 function startTest1() {
+  testStarted = true;
+  pushDummy();
   renderTest1();
   updateHeader('다중지능 검사', '56문항 · 1~5점 척도', true, Object.keys(answers1).length, 56);
   showScreen('test1');
@@ -964,6 +968,45 @@ function showTypeScreen() {
   document.getElementById('app-header').style.display = 'none';
   showScreen('type');
 }
+
+// ============================================================
+// 뒤로가기 방지 & 풀다운 새로고침 방지
+// ============================================================
+let testStarted = false;
+
+function pushDummy() {
+  history.pushState({page:'test'}, '', window.location.href);
+}
+
+window.addEventListener('popstate', function() {
+  if(testStarted) {
+    pushDummy();
+    setTimeout(function() {
+      const leave = confirm('검사를 종료하고 나가시겠어요?\n지금까지의 응답이 모두 사라져요.');
+      if(leave) {
+        testStarted = false;
+        history.back();
+      } else {
+        pushDummy();
+      }
+    }, 50);
+  }
+});
+
+// 풀다운 새로고침 방지
+let lastTouchY = 0;
+document.addEventListener('touchstart', e => { lastTouchY = e.touches[0].clientY; }, {passive:true});
+document.addEventListener('touchmove', function(e) {
+  const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+  if(scrollTop === 0 && e.touches[0].clientY > lastTouchY && testStarted) {
+    e.preventDefault();
+  }
+}, {passive:false});
+
+// 새로고침/탭 닫기 경고
+window.addEventListener('beforeunload', function(e) {
+  if(testStarted) { e.preventDefault(); e.returnValue = ''; }
+});
 </script>
 </body>
 </html>

@@ -32,6 +32,8 @@ body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: va
 .start-btn { padding: 15px 48px; background: var(--accent); color: #fff; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; transition: background 0.15s; }
 .start-btn:hover { background: var(--accent-mid); }
 .cover-source { font-size: 11px; color: var(--text-muted); margin-top: 2rem; max-width: 480px; line-height: 1.6; }
+.info-btn { width: 100%; max-width: 300px; padding: 11px; background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 12px; font-size: 14px; font-weight: 500; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; margin-top: 10px; transition: all 0.15s; }
+.info-btn:hover { background: var(--accent-light); }
 
 /* ── HEADER ── */
 .page-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0.9rem 1.5rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
@@ -161,7 +163,34 @@ body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: va
     <div class="cover-meta-item"><div class="num">약 10분</div><div class="label">소요시간</div></div>
   </div>
   <button class="start-btn" onclick="startSurvey()">검사 시작하기 →</button>
+  <button class="info-btn" onclick="showScreen('guide')">📖 가치관 · 유형 안내 보기</button>
   <p class="cover-source">출처: 한국청소년상담복지개발원 · 직업가치관 검사 활용도움서 (고등학생용, 2019) · 교육부 · 울산광역시교육청<br>수업 내 교육 목적으로만 활용됩니다.</p>
+</div>
+
+<!-- GUIDE SCREEN -->
+<div id="guideScreen" style="display:none;">
+  <div class="page-header">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button onclick="showScreen('cover')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-primary);">←</button>
+      <div>
+        <div class="page-header-title">가치관 · 유형 안내</div>
+        <div style="font-size:11px;color:var(--text-muted);">검사 결과와 무관하게 언제든 볼 수 있어요</div>
+      </div>
+    </div>
+  </div>
+  <div class="container" style="max-width:680px;margin:0 auto;padding:1.5rem 1rem 4rem;">
+
+    <div style="margin-bottom:2rem;">
+      <div class="section-title" style="font-size:12px;font-weight:700;color:var(--text-secondary);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:1rem;">12가지 직업가치관</div>
+      <div id="guideValueCards"></div>
+    </div>
+
+    <div>
+      <div class="section-title" style="font-size:12px;font-weight:700;color:var(--text-secondary);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:1rem;">4가지 가치지향 유형</div>
+      <div id="guideTypeCards"></div>
+    </div>
+
+  </div>
 </div>
 
 <!-- SURVEY -->
@@ -376,8 +405,90 @@ document.addEventListener('touchmove', function(e) {
 
 function startSurvey() {
   document.getElementById('coverScreen').style.display = 'none';
+  document.getElementById('guideScreen').style.display = 'none';
   document.getElementById('surveyScreen').style.display = 'block';
   renderPage();
+  window.scrollTo(0, 0);
+}
+
+function showScreen(id) {
+  // 모든 화면 숨기기
+  document.getElementById('coverScreen').style.display = 'none';
+  document.getElementById('guideScreen').style.display = 'none';
+  document.getElementById('surveyScreen').style.display = 'none';
+  document.getElementById('resultContainer').style.display = 'none';
+  // 선택한 화면 보이기
+  if (id === 'cover') document.getElementById('coverScreen').style.display = 'flex';
+  else if (id === 'guide') {
+    renderGuideScreen();
+    document.getElementById('guideScreen').style.display = 'block';
+    window.scrollTo(0, 0);
+  }
+}
+
+function renderGuideScreen() {
+  // 이미 렌더링됐으면 스킵
+  if (document.getElementById('guideValueCards').innerHTML) return;
+
+  // 12가지 가치관 카드
+  document.getElementById('guideValueCards').innerHTML = VALUES.map((v, idx) => `
+    <div class="value-card" style="margin-bottom:8px;">
+      <div class="value-card-toggle" onclick="toggleValueCard(${idx})">
+        <span class="value-card-name">${v.name}</span>
+        <span class="value-card-arrow" id="vc-arrow-${idx}">▼</span>
+      </div>
+      <div class="value-card-body" id="vc-body-${idx}">
+        <div class="value-card-def">${v.def}</div>
+        <div class="value-card-desc">${v.desc}</div>
+      </div>
+    </div>`).join('');
+
+  // 4가지 유형 카드
+  const typeOrder = ['stable','meaning','change','achieve'];
+  document.getElementById('guideTypeCards').innerHTML = typeOrder.map(typeKey => {
+    const t = TYPES[typeKey];
+    const jobs = TYPE_JOBS[typeKey];
+    const shown = jobs.slice(0, SHOW_LIMIT);
+    const hidden = jobs.slice(SHOW_LIMIT);
+    const hasMore = hidden.length > 0;
+    return `<div class="type-guide-card" style="margin-bottom:10px;">
+      <div class="type-guide-toggle" onclick="toggleTypeCard('${typeKey}')">
+        <div class="type-guide-toggle-left">
+          <div class="type-guide-name">${t.name}</div>
+          <div class="type-guide-keys">${t.keys.map(k=>`<span class="type-guide-key">${k}</span>`).join('')}</div>
+        </div>
+        <span class="type-guide-toggle-arrow" id="tg-arrow-${typeKey}">▼</span>
+      </div>
+      <div class="type-guide-body-wrap" id="tg-body-${typeKey}">
+        <div style="padding:1rem 1.5rem;border-top:1px solid var(--border);background:var(--accent-light);">
+          <p class="type-guide-desc">${t.desc}</p>
+        </div>
+        <div class="type-guide-body">
+          <div class="type-jobs-label">관련 직업</div>
+          <div class="job-tags">
+            ${shown.map(j=>`<span class="job-tag">${j}</span>`).join('')}
+            ${hasMore ? `<div id="guide-hidden-${typeKey}" style="display:none;flex-wrap:wrap;gap:6px;width:100%;">${hidden.map(j=>`<span class="job-tag">${j}</span>`).join('')}</div>` : ''}
+          </div>
+          ${hasMore ? `<button class="job-tag-more" onclick="event.stopPropagation();toggleGuideMoreJobs('${typeKey}')" style="margin-top:8px;" id="guide-morebtn-${typeKey}">+${hidden.length}개 더보기 ▼</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleGuideMoreJobs(typeKey) {
+  const hidden = document.getElementById('guide-hidden-' + typeKey);
+  const btn = document.getElementById('guide-morebtn-' + typeKey);
+  if (hidden.style.display === 'none') {
+    hidden.style.display = 'flex';
+    btn.textContent = '접기 ▲';
+  } else {
+    hidden.style.display = 'none';
+    btn.textContent = '+' + hidden.children.length + '개 더보기 ▼';
+  }
+}
+
+renderPage();
   window.scrollTo(0,0);
 }
 
@@ -570,8 +681,8 @@ function showResult() {
 function resetSurvey() {
   answers = {};
   currentPage = 0;
-  document.getElementById('resultScreen').style.display = 'none';
-  document.getElementById('coverScreen').style.display = 'flex';
+  document.getElementById('resultContainer').style.display = 'none';
+  showScreen('cover');
   window.scrollTo(0,0);
 }
 </script>

@@ -126,6 +126,7 @@ body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: va
       <button class="ctrl-btn btn-blue" id="btnStartR1" onclick="startBetting(1)" disabled>🎯 1라운드 배팅 시작</button>
       <button class="ctrl-btn btn-gold" id="btnCloseR1" onclick="closeBetting(1)" disabled>⏱ 1라운드 배팅 마감</button>
       <button class="ctrl-btn btn-green btn-full" id="btnRevealR1" onclick="startReveal(1)" disabled>📊 1라운드 결과 공개 시작</button>
+      <button class="ctrl-btn btn-purple" id="btnPreviewR2" onclick="previewR2()" disabled>👀 2라운드 매물 미리보기</button>
       <button class="ctrl-btn btn-blue" id="btnStartR2" onclick="startBetting(2)" disabled>🎯 2라운드 배팅 시작</button>
       <button class="ctrl-btn btn-gold" id="btnCloseR2" onclick="closeBetting(2)" disabled>⏱ 2라운드 배팅 마감</button>
       <button class="ctrl-btn btn-green btn-full" id="btnRevealR2" onclick="startReveal(2)" disabled>📊 2라운드 결과 공개 시작</button>
@@ -146,6 +147,7 @@ body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: va
       <button class="reveal-btn" id="revealNextBtn" onclick="revealNext()">다음 매물 공개 →</button>
       <span class="reveal-counter" id="revealCounter">0 / 0 공개됨</span>
     </div>
+    <button id="btnTransitionResult" style="display:none;width:100%;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;font-family:'Noto Sans KR',sans-serif;cursor:pointer;margin-bottom:1rem;">📊 결과 화면으로 전환</button>
     <div class="reveal-cards" id="revealCards"></div>
   </div>
 
@@ -261,6 +263,12 @@ function startTargetSelect() {
   db.ref('gameState').set({ phase: 'target_select' });
   setBtn('btnTargetSelect',true); setBtn('btnStartR1',false);
 }
+function previewR2() {
+  db.ref('gameState').set({ phase: 'preview_r2' });
+  setBtn('btnPreviewR2', true);
+  setBtn('btnStartR2', false);
+}
+
 function startBetting(round) {
   const endTime = Date.now() + 180000;
   db.ref('gameState').set({ phase: 'betting_r'+round, timerEnd: endTime });
@@ -446,10 +454,19 @@ function revealNext() {
   if (revealIndex>=revealItems.length) {
     document.getElementById('revealNextBtn').disabled=true;
     renderScoreboard();
-    const phase = currentRevealRound===1?'show_result_r1':'show_result_r2';
-    db.ref('gameState').set({ phase, results:revealResults });
-    if (currentRevealRound===1) setBtn('btnStartR2',false);
-    else setBtn('btnEnd',false);
+    // 마지막 매물 공개 후 별도 버튼으로 결과 화면 전환 (학생이 마지막 매물 볼 시간 확보)
+    const transBtn = document.getElementById('btnTransitionResult');
+    if (transBtn) {
+      transBtn.style.display='block';
+      transBtn.textContent = currentRevealRound===1 ? '📊 1라운드 결과 화면으로 전환' : '📊 2라운드 결과 화면으로 전환';
+      transBtn.onclick = function() {
+        const phase = currentRevealRound===1?'show_result_r1':'show_result_r2';
+        db.ref('gameState').set({ phase, results:revealResults });
+        if (currentRevealRound===1) setBtn('btnPreviewR2',false);
+        else setBtn('btnEnd',false);
+        transBtn.style.display='none';
+      };
+    }
   }
 }
 

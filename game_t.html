@@ -316,47 +316,58 @@ function calcAndSaveResults(round, callback) {
       amountGroups[amt] = bids.filter(b=>b.amount===amt);
     });
     
-    // 폭사 목록과 낙찰자 찾기
+    // 폭사 룰: 금액대를 내려가며 단독 1명인 첫 번째가 낙찰
     const bombedPlayers = [];
     let winnerBid = null;
-    
+
     for (const amt of amounts) {
       const group = amountGroups[amt];
       if (group.length > 1) {
-        // 동점 → 전원 폭사
         group.forEach(b => bombedPlayers.push(b.nick));
       } else {
-        // 단독 → 낙찰!
         winnerBid = group[0];
         break;
       }
     }
 
-    if (bombedPlayers.length > 0 && !winnerBid) {
+    if (!winnerBid) {
       // 모두 폭사, 낙찰자 없음
       results[item.id] = {
-        bombed:true, bombedPlayers, bombedAmount:'전원',
-        nextWinner:null, nextAmount:0, allBids:allBidsData
+        bombed: true,
+        bombedPlayers,
+        bombedAmount: amounts[0],
+        nextWinner: null,
+        nextAmount: 0,
+        allBids: allBidsData
       };
-    } else if (bombedPlayers.length > 0 && winnerBid) {
+    } else if (bombedPlayers.length > 0) {
       // 일부 폭사 + 낙찰자 존재
-      const isTarget = round===1&&(winnerBid.targets||[]).includes(item.id);
-      const score = 50+winnerBid.amount+(isTarget?50:0);
+      const isTarget = round===1 && (winnerBid.targets||[]).includes(item.id);
+      const score = 50 + winnerBid.amount + (isTarget ? 50 : 0);
       results[item.id] = {
-        bombed:true, bombedPlayers,
-        bombedAmount: amountGroups[bombedPlayers[0] ? bids.find(b=>b.nick===bombedPlayers[0]).amount : 0],
-        nextWinner:winnerBid.nick, nextAmount:winnerBid.amount,
-        nextScore:score, nextIsTarget:isTarget,
-        allBids:allBidsData
+        bombed: true,
+        bombedPlayers,
+        bombedAmount: amounts[0],
+        nextWinner: winnerBid.nick,
+        nextAmount: winnerBid.amount,
+        nextScore: score,
+        nextIsTarget: isTarget,
+        allBids: allBidsData
       };
-      scoreUpdates[winnerBid.nick]=(scoreUpdates[winnerBid.nick]||0)+score;
+      scoreUpdates[winnerBid.nick] = (scoreUpdates[winnerBid.nick]||0) + score;
     } else {
-      // 폭사 없음, 단독 1위 낙찰
-      const winner = winnerBid;
-      const isTarget = round===1&&(winner.targets||[]).includes(item.id);
-      const score = 50+winner.amount+(isTarget?50:0);
-      results[item.id]={winner:winner.nick,amount:winner.amount,bombed:false,isTarget,score,allBids:allBidsData};
-      scoreUpdates[winner.nick]=(scoreUpdates[winner.nick]||0)+score;
+      // 폭사 없음, 단독 낙찰 (1명만 배팅한 경우 포함)
+      const isTarget = round===1 && (winnerBid.targets||[]).includes(item.id);
+      const score = 50 + winnerBid.amount + (isTarget ? 50 : 0);
+      results[item.id] = {
+        winner: winnerBid.nick,
+        amount: winnerBid.amount,
+        bombed: false,
+        isTarget,
+        score,
+        allBids: allBidsData
+      };
+      scoreUpdates[winnerBid.nick] = (scoreUpdates[winnerBid.nick]||0) + score;
     }
   });
 

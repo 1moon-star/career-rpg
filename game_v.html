@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>가치관 눈치경매 - 뷰어</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0a0a0a; --surface: #161616; --surface2: #1e1e1e; --border: #282828;
+  --text: #f0f0f0; --text2: #888;
+  --accent: #39ff6a; --accent-dim: rgba(57,255,106,0.1);
+  --danger: #ff4444; --danger-dim: rgba(255,68,68,0.12);
+  --gold: #ffd700; --gold-dim: rgba(255,215,0,0.12);
+}
+html, body { height: 100%; }
+body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+/* 헤더 */
+.viewer-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.viewer-logo { font-size: 16px; font-weight: 700; color: var(--accent); }
+.viewer-phase { font-size: 13px; color: var(--text2); background: var(--surface2); padding: 4px 14px; border-radius: 20px; }
+
+/* 화면 */
+.vscreen { display: none; flex: 1; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
+.vscreen.active { display: flex; }
+
+/* 대기 화면 */
+.wait-title { font-size: 48px; font-weight: 900; color: var(--accent); margin-bottom: 12px; letter-spacing: -0.04em; }
+.wait-sub { font-size: 20px; color: var(--text2); margin-bottom: 3rem; }
+.player-bubbles { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 800px; }
+.player-bubble { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; padding: 10px 20px; font-size: 16px; font-weight: 500; transition: all 0.3s; }
+.player-bubble.new { border-color: var(--accent); color: var(--accent); }
+.player-count-big { font-size: 80px; font-weight: 900; color: var(--accent); margin-top: 2rem; }
+.player-count-label { font-size: 18px; color: var(--text2); }
+
+/* 배팅 화면 */
+.bet-timer { font-size: 120px; font-weight: 900; color: var(--gold); font-variant-numeric: tabular-nums; line-height: 1; margin-bottom: 16px; }
+.bet-timer.urgent { color: var(--danger); animation: blink 0.5s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.bet-round-label { font-size: 20px; color: var(--text2); margin-bottom: 1rem; }
+.bet-progress-wrap { width: 600px; max-width: 90vw; background: var(--border); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 2rem; }
+.bet-progress-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 1s linear; }
+.bet-submit-count { font-size: 22px; color: var(--text2); }
+.bet-submit-count span { color: var(--accent); font-weight: 700; font-size: 28px; }
+.bet-silence { font-size: 28px; color: var(--text2); margin-top: 1.5rem; letter-spacing: 0.04em; }
+
+/* 결과 공개 화면 */
+.reveal-current { width: 100%; max-width: 700px; }
+.reveal-item-title { font-size: 36px; font-weight: 900; margin-bottom: 1.5rem; text-align: center; }
+.reveal-result-big { text-align: center; margin-bottom: 2rem; }
+.reveal-winner-name { font-size: 64px; font-weight: 900; color: var(--accent); line-height: 1.1; }
+.reveal-winner-sub { font-size: 20px; color: var(--text2); margin-top: 8px; }
+.reveal-bomb-title { font-size: 48px; font-weight: 900; color: var(--danger); }
+.reveal-bomb-names { font-size: 24px; color: var(--danger); margin-top: 8px; opacity: 0.8; }
+.reveal-next-label { font-size: 18px; color: var(--text2); margin-top: 1.5rem; }
+.reveal-next-name { font-size: 40px; font-weight: 700; color: var(--gold); }
+.reveal-no-bid { font-size: 32px; color: var(--text2); }
+.reveal-bids-list { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-top: 1rem; }
+.reveal-bid-row { display: flex; align-items: center; gap: 16px; padding: 14px 24px; border-bottom: 1px solid var(--border); }
+.reveal-bid-row:last-child { border-bottom: none; }
+.reveal-bid-rank { font-size: 16px; color: var(--text2); width: 40px; font-weight: 700; }
+.reveal-bid-nick { font-size: 20px; font-weight: 700; flex: 1; }
+.reveal-bid-nick.win { color: var(--accent); }
+.reveal-bid-nick.bombed { color: var(--danger); text-decoration: line-through; }
+.reveal-bid-nick.next { color: var(--gold); }
+.reveal-bid-lp { font-size: 16px; color: var(--text2); }
+.reveal-bid-lp.win { color: var(--accent); font-weight: 700; }
+.reveal-bid-score { font-size: 18px; font-weight: 700; color: var(--gold); width: 80px; text-align: right; }
+.reveal-history { margin-top: 2rem; width: 100%; max-width: 700px; }
+.reveal-history-title { font-size: 14px; color: var(--text2); margin-bottom: 10px; letter-spacing: 0.04em; font-weight: 700; }
+.reveal-history-list { display: flex; flex-direction: column; gap: 6px; }
+.reveal-history-item { display: flex; align-items: center; gap: 10px; background: var(--surface); border-radius: 10px; padding: 8px 16px; }
+.rhi-name { font-size: 14px; font-weight: 700; flex: 1; }
+.rhi-result { font-size: 13px; color: var(--text2); }
+.rhi-result.win { color: var(--accent); }
+.rhi-result.bomb { color: var(--danger); }
+
+/* 랭킹 화면 */
+.ranking-title-big { font-size: 40px; font-weight: 900; color: var(--gold); margin-bottom: 2rem; letter-spacing: -0.03em; }
+.ranking-podium { display: flex; align-items: flex-end; gap: 1rem; margin-bottom: 2rem; }
+.podium-item { display: flex; flex-direction: column; align-items: center; }
+.podium-medal { font-size: 40px; margin-bottom: 8px; }
+.podium-nick { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.podium-pts { font-size: 28px; font-weight: 900; color: var(--gold); }
+.podium-block { width: 100%; border-radius: 12px 12px 0 0; margin-top: 8px; }
+.podium-item.rank1 .podium-block { height: 120px; background: var(--gold); }
+.podium-item.rank2 .podium-block { height: 80px; background: #808080; }
+.podium-item.rank3 .podium-block { height: 60px; background: #8b4513; }
+.podium-item.rank1 { order: 2; }
+.podium-item.rank2 { order: 1; }
+.podium-item.rank3 { order: 3; }
+.ranking-rest { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 500px; }
+.ranking-rest-row { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 18px; }
+.ranking-rest-rank { font-size: 16px; color: var(--text2); width: 32px; font-weight: 700; }
+.ranking-rest-nick { font-size: 18px; font-weight: 700; flex: 1; }
+.ranking-rest-pts { font-size: 18px; font-weight: 700; color: var(--gold); }
+</style>
+
+<script>
+// ── 사운드 엔진 (Web Audio API) ──
+let audioCtx = null;
+let isMuted = false;
+let urgentBeepInterval = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playTone(freq, duration, type='square', volume=0.3, delay=0) {
+  if (isMuted) return;
+  const ctx = getAudioCtx();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+  gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+  gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + delay + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+  osc.start(ctx.currentTime + delay);
+  osc.stop(ctx.currentTime + delay + duration + 0.05);
+}
+
+// 배팅 시작음 - 상승하는 전자음 3연타
+function soundBettingStart() {
+  playTone(440, 0.1, 'square', 0.25, 0.0);
+  playTone(550, 0.1, 'square', 0.25, 0.12);
+  playTone(660, 0.2, 'square', 0.3,  0.24);
+}
+
+// 타이머 30초 경고 - 긴박한 비프
+function soundUrgentBeep() {
+  playTone(880, 0.06, 'square', 0.2);
+}
+
+// 매물 공개 - 드럼롤 느낌의 상승음
+function soundReveal() {
+  [200,250,300,380,480,600,750,900].forEach((freq, i) => {
+    playTone(freq, 0.06, 'square', 0.15, i * 0.04);
+  });
+  playTone(1100, 0.25, 'square', 0.3, 0.35);
+}
+
+// 낙찰 - 팡파르
+function soundWin() {
+  const melody = [523,659,784,1047];
+  melody.forEach((freq, i) => {
+    playTone(freq, 0.15, 'square', 0.28, i * 0.13);
+  });
+}
+
+// 폭사 - 하강 전자음
+function soundBomb() {
+  playTone(600, 0.08, 'sawtooth', 0.25, 0.0);
+  playTone(400, 0.08, 'sawtooth', 0.25, 0.1);
+  playTone(200, 0.15, 'sawtooth', 0.3,  0.2);
+}
+
+// 입찰없음 - 짧은 낮은 비프
+function soundNoBid() {
+  playTone(220, 0.15, 'square', 0.15);
+}
+
+// 랭킹 공개 - 축하 팡파르
+function soundRanking() {
+  const fanfare = [
+    [523,0.1,0],[659,0.1,0.12],[784,0.1,0.24],[1047,0.2,0.36],
+    [784,0.08,0.6],[880,0.08,0.7],[1047,0.3,0.8]
+  ];
+  fanfare.forEach(([freq, dur, delay]) => {
+    playTone(freq, dur, 'square', 0.3, delay);
+  });
+}
+
+function toggleMute() {
+  isMuted = !isMuted;
+  const btn = document.getElementById('muteBtn');
+  btn.textContent = isMuted ? '🔇 음소거' : '🔊 소리 켜짐';
+  btn.style.opacity = isMuted ? '0.5' : '1';
+  if (urgentBeepInterval && isMuted) {
+    clearInterval(urgentBeepInterval);
+    urgentBeepInterval = null;
+  }
+}
+</script>
+</head>
+<body>
+
+<div class="viewer-header">
+  <div class="viewer-logo">🎯 가치관 눈치경매</div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div class="viewer-phase" id="viewerPhase">연결 중...</div>
+    <button id="muteBtn" onclick="toggleMute()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 12px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">🔊 소리 켜짐</button>
+  </div>
+</div>
+
+<!-- 대기 -->
+<div class="vscreen active" id="vs-waiting">
+  <div class="wait-title">참여자 대기 중</div>
+  <div class="wait-sub">선생님이 게임을 시작할 때까지 기다려요</div>
+  <div class="player-bubbles" id="playerBubbles"></div>
+  <div class="player-count-big" id="playerCountBig">0</div>
+  <div class="player-count-label">명 참여 중</div>
+</div>
+
+<!-- 목표 선택 -->
+<div class="vscreen" id="vs-target">
+  <div class="wait-title" style="font-size:36px;">🎯 목표 가치관 선택 중</div>
+  <div class="wait-sub" style="margin-bottom:2rem;">지난 검사 결과를 참고해서 목표 가치관을 선택하세요</div>
+  <div class="player-count-big" style="font-size:60px;" id="targetDoneCount">0</div>
+  <div class="player-count-label">명 선택 완료</div>
+  <div style="margin-top:1.5rem;font-size:18px;color:var(--text2);" id="targetDoneSub"></div>
+</div>
+
+<!-- 배팅 -->
+<div class="vscreen" id="vs-betting">
+  <div class="bet-round-label" id="betRoundLabel">1라운드 · 직업가치관</div>
+  <div class="bet-timer" id="betTimerBig">3:00</div>
+  <div class="bet-progress-wrap">
+    <div class="bet-progress-fill" id="betProgressFill" style="width:100%"></div>
+  </div>
+  <div class="bet-submit-count">배팅 제출 완료: <span id="betSubmitCount">0</span>명</div>
+  <div class="bet-silence">🤫 침묵</div>
+</div>
+
+<!-- 결과 집계 -->
+<div class="vscreen" id="vs-result-wait">
+  <div class="wait-title" style="font-size:36px;">결과 집계 중...</div>
+  <div class="wait-sub">잠시 후 결과를 공개합니다</div>
+  <div class="pulse-dot" style="width:16px;height:16px;background:var(--accent);border-radius:50%;margin-top:2rem;animation:pulse 1.5s infinite;"></div>
+  <style>@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.8)}}</style>
+</div>
+
+<!-- 순차 공개 -->
+<div class="vscreen" id="vs-revealing">
+  <div class="reveal-current" id="revealCurrent">
+    <div class="reveal-item-title" id="revealItemTitle">-</div>
+    <div class="reveal-result-big" id="revealResultBig"></div>
+    <div class="reveal-bids-list" id="revealBidsList"></div>
+  </div>
+  <div class="reveal-history" id="revealHistory" style="display:none">
+    <div class="reveal-history-title">이전 공개 결과</div>
+    <div class="reveal-history-list" id="revealHistoryList"></div>
+  </div>
+</div>
+
+<!-- 랭킹 -->
+<div class="vscreen" id="vs-ranking">
+  <div class="ranking-title-big">🏆 최종 랭킹</div>
+  <div class="ranking-podium" id="rankingPodium"></div>
+  <div class="ranking-rest" id="rankingRest"></div>
+</div>
+
+<script>
+// ── 사운드 엔진 (Web Audio API) ──
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+let isMuted = false;
+let urgentBeepInterval = null;
+
+function getCtx() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+  return audioCtx;
+}
+
+function toggleMute() {
+  isMuted = !isMuted;
+  document.getElementById('muteBtn').textContent = isMuted ? '🔇 소리 꺼짐' : '🔊 소리 켜짐';
+  if (isMuted && urgentBeepInterval) {
+    clearInterval(urgentBeepInterval);
+    urgentBeepInterval = null;
+  }
+}
+
+// 기본 오실레이터 생성
+function playTone(freq, duration, type='square', vol=0.3, delay=0) {
+  if (isMuted) return;
+  const ctx = getCtx();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+  gain.gain.setValueAtTime(vol, ctx.currentTime + delay);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+  osc.start(ctx.currentTime + delay);
+  osc.stop(ctx.currentTime + delay + duration);
+}
+
+// 🎯 배팅 시작 - 상승하는 전자음 3단계
+function soundBettingStart() {
+  if (isMuted) return;
+  [400, 600, 900].forEach((freq, i) => playTone(freq, 0.15, 'square', 0.25, i * 0.12));
+  setTimeout(() => playTone(1200, 0.35, 'square', 0.3), 400);
+}
+
+// ⏰ 30초 경고 - 빠른 비프 반복
+function soundUrgentStart() {
+  if (isMuted) return;
+  if (urgentBeepInterval) return;
+  let count = 0;
+  function beep() {
+    if (isMuted) return;
+    playTone(880, 0.08, 'square', 0.2);
+    count++;
+    if (count >= 6) { // 처음 6번만 울리고 이후는 자동으로 끊기
+      clearInterval(urgentBeepInterval);
+      urgentBeepInterval = null;
+    }
+  }
+  beep();
+  urgentBeepInterval = setInterval(beep, 500);
+}
+
+// 🎵 매물 공개 - 두구두구 드럼롤 + 짠!
+function soundReveal() {
+  if (isMuted) return;
+  // 드럼롤
+  const rolls = [0, 0.08, 0.16, 0.22, 0.28, 0.33, 0.37, 0.40];
+  rolls.forEach((t, i) => {
+    playTone(120 + i * 10, 0.06, 'sawtooth', 0.2, t);
+  });
+  // 짠!
+  setTimeout(() => {
+    playTone(523, 0.12, 'square', 0.3);
+    playTone(659, 0.12, 'square', 0.3, 0.1);
+    playTone(784, 0.25, 'square', 0.35, 0.2);
+  }, 500);
+}
+
+// 🏆 낙찰 - 밝은 팡파레
+function soundWin() {
+  if (isMuted) return;
+  const melody = [
+    {f:523, d:0.1, t:0},
+    {f:659, d:0.1, t:0.1},
+    {f:784, d:0.1, t:0.2},
+    {f:1047, d:0.3, t:0.3},
+  ];
+  melody.forEach(n => playTone(n.f, n.d, 'square', 0.28, n.t));
+}
+
+// 💥 폭사 - 하강 전자음
+function soundBomb() {
+  if (isMuted) return;
+  const ctx = getCtx();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(600, ctx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.4);
+  gain.gain.setValueAtTime(0.3, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+  osc.start(ctx.currentTime);
+  osc.stop(ctx.currentTime + 0.5);
+}
+
+// 🎉 게임 종료/랭킹 - 화려한 팡파레
+function soundFanfare() {
+  if (isMuted) return;
+  const melody = [
+    {f:523, d:0.12, t:0},
+    {f:523, d:0.12, t:0.13},
+    {f:523, d:0.12, t:0.26},
+    {f:415, d:0.09, t:0.39},
+    {f:523, d:0.12, t:0.48},
+    {f:659, d:0.12, t:0.61},
+    {f:784, d:0.12, t:0.74},
+    {f:1047, d:0.5,  t:0.87},
+  ];
+  melody.forEach(n => playTone(n.f, n.d, 'square', 0.3, n.t));
+  // 화음
+  setTimeout(() => {
+    playTone(784, 0.5, 'triangle', 0.15, 0);
+    playTone(987, 0.5, 'triangle', 0.15, 0);
+  }, 870);
+}
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAS4hYbCtSpBXUsH_ue463gCVarqbnP7WY",
+  authDomain: "career-game-69c2f.firebaseapp.com",
+  databaseURL: "https://career-game-69c2f-default-rtdb.firebaseio.com",
+  projectId: "career-game-69c2f",
+  storageBucket: "career-game-69c2f.firebasestorage.app",
+  messagingSenderId: "856172881039",
+  appId: "1:856172881039:web:593b5fa4d3cfa2a6e63cfa"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const VALUE_ITEMS = [
+  {id:'v1',name:'💰 보수·안정'},{id:'v2',name:'⚖️ 워라밸'},
+  {id:'v3',name:'🎯 자율성'},{id:'v4',name:'😄 즐거움'},
+  {id:'v5',name:'🌱 성장'},{id:'v6',name:'🔥 도전'},
+  {id:'v7',name:'👑 영향력·인정'},{id:'v8',name:'🤝 관계·기여'}
+];
+const HOLLAND_ITEMS = [
+  {id:'h1',name:'🔧 만들기·기술'},{id:'h2',name:'🔬 분석·탐구'},
+  {id:'h3',name:'🌍 도전·탐험'},{id:'h4',name:'🎨 창작·표현'},
+  {id:'h5',name:'🤝 돕기·소통'},{id:'h6',name:'📢 이끌기·설득'},
+  {id:'h7',name:'💡 아이디어·운영'}
+];
+
+let timerInterval = null;
+let lastRevealedCount = 0;
+let currentRevealItems = [];
+let revealHistory = [];
+
+function showVScreen(id) {
+  document.querySelectorAll('.vscreen').forEach(s => s.classList.remove('active'));
+  document.getElementById('vs-' + id).classList.add('active');
+}
+
+function setPhaseLabel(text) {
+  document.getElementById('viewerPhase').textContent = text;
+}
+
+// 플레이어 실시간
+db.ref('players').on('value', snap => {
+  const players = snap.exists() ? Object.values(snap.val()) : [];
+  const count = players.length;
+  document.getElementById('playerCountBig').textContent = count;
+
+  // 대기 버블
+  document.getElementById('playerBubbles').innerHTML = players.map(p =>
+    `<div class="player-bubble">${p.nickname}</div>`).join('');
+
+  // 목표 선택 완료
+  const targetDone = players.filter(p => p.targets && p.targets.length > 0).length;
+  document.getElementById('targetDoneCount').textContent = targetDone;
+  document.getElementById('targetDoneSub').textContent = `전체 ${count}명 중 ${count - targetDone}명 선택 중...`;
+
+  // 배팅 제출 수 (gameState에서 파악하기 어려우니 여기서 계산)
+  const r1Done = players.filter(p => p.r1bet).length;
+  const r2Done = players.filter(p => p.r2bet).length;
+  document.getElementById('betSubmitCount').textContent = Math.max(r1Done, r2Done);
+});
+
+// 게임 상태 실시간
+db.ref('gameState').on('value', snap => {
+  if (!snap.exists()) return;
+  const state = snap.val();
+  handleViewerState(state);
+});
+
+function handleViewerState(state) {
+  switch (state.phase) {
+    case 'closed':
+    case 'waiting':
+      setPhaseLabel('대기 중');
+      showVScreen('waiting'); break;
+
+    case 'target_select':
+      setPhaseLabel('목표 선택');
+      showVScreen('target'); break;
+
+    case 'betting_r1':
+      setPhaseLabel('1라운드 배팅');
+      document.getElementById('betRoundLabel').textContent = '1라운드 · 직업가치관';
+      showVScreen('betting');
+      soundBettingStart();
+      startViewerTimer(state.timerEnd); break;
+
+    case 'betting_r2':
+      setPhaseLabel('2라운드 배팅');
+      document.getElementById('betRoundLabel').textContent = '2라운드 · 흥미유형';
+      showVScreen('betting');
+      soundBettingStart();
+      startViewerTimer(state.timerEnd); break;
+
+    case 'result_wait':
+      setPhaseLabel('결과 집계 중');
+      stopViewerTimer();
+      showVScreen('result-wait'); break;
+
+    case 'revealing_r1':
+    case 'revealing_r2':
+      const rnd = state.phase === 'revealing_r1' ? 1 : 2;
+      setPhaseLabel(rnd + '라운드 결과 공개');
+      currentRevealItems = rnd === 1 ? VALUE_ITEMS : HOLLAND_ITEMS;
+      updateViewerReveal(state.results || {}, state.revealedCount || 0);
+      showVScreen('revealing'); break;
+
+    case 'show_result_r1':
+    case 'show_result_r2':
+      // 전체 공개 완료 - 마지막 매물 결과 유지
+      break;
+
+    case 'ended':
+      setPhaseLabel('게임 종료');
+      stopViewerTimer();
+      soundRanking();
+      showRanking(state.rankings || []); break;
+  }
+}
+
+// 뷰어 타이머
+function startViewerTimer(endTime) {
+  if (timerInterval) clearInterval(timerInterval);
+  const timerEl = document.getElementById('betTimerBig');
+  const fillEl = document.getElementById('betProgressFill');
+  const total = 180000;
+  function tick() {
+    const left = Math.max(0, endTime - Date.now());
+    const min = Math.floor(left / 60000);
+    const sec = Math.floor((left % 60000) / 1000);
+    timerEl.textContent = min + ':' + String(sec).padStart(2, '0');
+    const wasUrgent = timerEl.className.includes('urgent');
+    timerEl.className = 'bet-timer' + (left <= 30000 ? ' urgent' : '');
+    fillEl.style.width = (left / total * 100) + '%';
+    // 30초 진입 시 첫 경고음 + 이후 1초마다 비프
+    if (left <= 30000 && !wasUrgent) {
+      soundUrgentBeep();
+      if (urgentBeepInterval) clearInterval(urgentBeepInterval);
+      urgentBeepInterval = setInterval(() => { soundUrgentBeep(); }, 1000);
+    }
+    if (left <= 0) { stopViewerTimer(); if (urgentBeepInterval) { clearInterval(urgentBeepInterval); urgentBeepInterval = null; } }
+  }
+  tick(); timerInterval = setInterval(tick, 500);
+}
+function stopViewerTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = null;
+  if (urgentBeepInterval) { clearInterval(urgentBeepInterval); urgentBeepInterval = null; }
+}
+
+// 순차 공개 뷰어
+function updateViewerReveal(results, revealedCount) {
+  if (revealedCount === 0) {
+    revealHistory = [];
+    lastRevealedCount = 0;
+    document.getElementById('revealHistoryList').innerHTML = '';
+    document.getElementById('revealHistory').style.display = 'none';
+    document.getElementById('revealItemTitle').textContent = '곧 공개됩니다...';
+    document.getElementById('revealResultBig').innerHTML = '';
+    document.getElementById('revealBidsList').innerHTML = '';
+    return;
+  }
+
+  if (revealedCount <= lastRevealedCount) return;
+
+  // 새로 공개된 매물
+  const idx = revealedCount - 1;
+  const item = currentRevealItems[idx];
+  if (!item) return;
+  const r = results[item.id];
+
+  // 이전 항목 히스토리로
+  if (lastRevealedCount > 0 && idx > 0) {
+    const prevItem = currentRevealItems[idx - 1];
+    const prevR = results[prevItem.id];
+    let prevResult = '입찰 없음';
+    let prevCls = '';
+    if (prevR) {
+      if (prevR.bombed) { prevResult = '💥 폭사'; prevCls = 'bomb'; }
+      else if (prevR.winner) { prevResult = `🏆 ${prevR.winner} (${prevR.score}점)`; prevCls = 'win'; }
+    }
+    revealHistory.unshift({ name: prevItem.name, result: prevResult, cls: prevCls });
+    if (revealHistory.length > 3) revealHistory.pop();
+    document.getElementById('revealHistoryList').innerHTML = revealHistory.map(h =>
+      `<div class="reveal-history-item"><span class="rhi-name">${h.name}</span><span class="rhi-result ${h.cls}">${h.result}</span></div>`
+    ).join('');
+    document.getElementById('revealHistory').style.display = 'block';
+  }
+
+  // 매물 공개 사운드
+  soundReveal();
+
+  // 현재 매물 표시
+  soundReveal();
+  document.getElementById('revealItemTitle').textContent = item.name;
+
+  if (!r || (!r.winner && !r.bombed)) {
+    soundNoBid();
+    document.getElementById('revealResultBig').innerHTML = `<div class="reveal-no-bid">입찰자가 없어요</div>`;
+    document.getElementById('revealBidsList').innerHTML = '';
+  } else if (r.bombed) {
+    soundBomb();
+    const bombNames = (r.bombedPlayers || []).join(', ');
+    setTimeout(() => soundBomb(), 600);
+    document.getElementById('revealResultBig').innerHTML = `
+      <div class="reveal-bomb-title">💥 동점 폭사!</div>
+      <div class="reveal-bomb-names">${bombNames}</div>
+      ${r.nextWinner ? `<div class="reveal-next-label">차순위 낙찰 →</div><div class="reveal-next-name">${r.nextWinner} (${r.nextScore||0}점)</div>` : ''}`;
+    const bombSet = new Set(r.bombedPlayers || []);
+    document.getElementById('revealBidsList').innerHTML = (r.allBids || []).slice(0, 10).map((b, i) => {
+      const isBombed = bombSet.has(b.nick);
+      const isNext = b.nick === r.nextWinner;
+      return `<div class="reveal-bid-row">
+        <span class="reveal-bid-rank">${i===0?'👑':(i+1)+'위'}</span>
+        <span class="reveal-bid-nick${isBombed?' bombed':isNext?' next':''}">${b.nick}</span>
+        <span class="reveal-bid-lp">${b.amount}LP</span>
+        <span class="reveal-bid-score">${isNext?(r.nextScore||0)+'점':isBombed?'0점':'-'}</span>
+      </div>`;
+    }).join('');
+  } else {
+    setTimeout(() => soundWin(), 600);
+    const targetTag = r.isTarget ? ' ⭐' : '';
+    document.getElementById('revealResultBig').innerHTML = `
+      <div class="reveal-winner-name">${r.winner}${targetTag}</div>
+      <div class="reveal-winner-sub">${r.score}점 획득 (50점 기본 + ${r.amount}LP${r.isTarget?' + 목표보너스':''})</div>`;
+    document.getElementById('revealBidsList').innerHTML = (r.allBids || []).slice(0, 10).map((b, i) => {
+      const isWin = b.nick === r.winner;
+      return `<div class="reveal-bid-row">
+        <span class="reveal-bid-rank">${i===0?'🏆':(i+1)+'위'}</span>
+        <span class="reveal-bid-nick${isWin?' win':''}">${b.nick}</span>
+        <span class="reveal-bid-lp${isWin?' win':''}">${b.amount}LP</span>
+        <span class="reveal-bid-score">${isWin?r.score+'점':'−'}</span>
+      </div>`;
+    }).join('') + ((r.allBids||[]).length > 10 ? `<div style="padding:8px 24px;font-size:13px;color:var(--text2);">외 ${(r.allBids||[]).length-10}명 더...</div>` : '');
+  }
+
+  lastRevealedCount = revealedCount;
+}
+
+// 랭킹 화면
+function showRanking(rankings) {
+  showVScreen('ranking');
+  soundFanfare();
+  const medals = ['🥇','🥈','🥉'];
+  const top3 = rankings.slice(0, 3);
+  const rest = rankings.slice(3);
+
+  document.getElementById('rankingPodium').innerHTML = top3.map((r, i) => `
+    <div class="podium-item rank${i+1}">
+      <div class="podium-medal">${medals[i]}</div>
+      <div class="podium-nick">${r.nick}</div>
+      <div class="podium-pts">${r.total}점</div>
+      <div class="podium-block"></div>
+    </div>`).join('');
+
+  document.getElementById('rankingRest').innerHTML = rest.map((r, i) => `
+    <div class="ranking-rest-row">
+      <span class="ranking-rest-rank">${i+4}위</span>
+      <span class="ranking-rest-nick">${r.nick}</span>
+      <span class="ranking-rest-pts">${r.total}점</span>
+    </div>`).join('');
+}
+</script>
+</body>
+</html>

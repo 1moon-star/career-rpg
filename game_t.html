@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>가치관 눈치경매 - 교사 관리자</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d0d0d; --surface: #1a1a1a; --surface2: #242424; --border: #2e2e2e;
+  --text: #f0f0f0; --text2: #a0a0a0;
+  --accent: #39ff6a; --accent-dim: rgba(57,255,106,0.12);
+  --danger: #ff4444; --danger-dim: rgba(255,68,68,0.15);
+  --gold: #ffd700; --gold-dim: rgba(255,215,0,0.15);
+  --blue: #4488ff; --blue-dim: rgba(68,136,255,0.12);
+  --purple: #aa66ff; --purple-dim: rgba(170,102,255,0.12);
+}
+body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+.admin-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+.admin-title { font-size: 15px; font-weight: 700; color: var(--accent); }
+.header-right { display: flex; align-items: center; gap: 10px; }
+.phase-badge { font-size: 12px; color: var(--text2); background: var(--surface2); padding: 4px 12px; border-radius: 20px; }
+.reset-all-btn { padding: 6px 14px; background: var(--danger); color: #fff; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+
+.container { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
+
+.status-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; text-align: center; }
+.stat-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; font-weight: 700; letter-spacing: 0.04em; }
+.stat-val { font-size: 22px; font-weight: 700; }
+.c-green{color:var(--accent);} .c-gold{color:var(--gold);} .c-blue{color:var(--blue);} .c-purple{color:var(--purple);}
+
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; }
+.panel-title { font-size: 12px; font-weight: 700; color: var(--text2); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 1rem; }
+
+.btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ctrl-btn { padding: 13px 12px; border: none; border-radius: 12px; font-size: 14px; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; transition: opacity 0.15s; line-height: 1.3; }
+.ctrl-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+.ctrl-btn:hover:not(:disabled) { opacity: 0.82; }
+.btn-green{background:var(--accent);color:#000;} .btn-gold{background:var(--gold);color:#000;} .btn-blue{background:var(--blue);color:#fff;} .btn-danger{background:var(--danger);color:#fff;} .btn-purple{background:var(--purple);color:#fff;} .btn-gray{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn-full { grid-column: 1 / -1; }
+.timer-display { text-align: center; font-size: 48px; font-weight: 700; color: var(--gold); margin: 0.5rem 0 1rem; display: none; font-variant-numeric: tabular-nums; }
+
+.players-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-top: 1rem; min-height: 36px; }
+.player-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; font-size: 12px; display: flex; align-items: center; gap: 5px; transition: border-color 0.3s; }
+.player-chip.submitted { border-color: var(--accent); }
+.player-chip.target-done { border-color: var(--purple); }
+.player-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); flex-shrink: 0; transition: background 0.3s; }
+.player-chip.submitted .player-dot { background: var(--accent); }
+.player-chip.target-done .player-dot { background: var(--purple); }
+.player-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.reveal-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
+.reveal-btn { padding: 11px 22px; background: var(--accent); color: #000; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+.reveal-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.reveal-counter { font-size: 13px; color: var(--text2); }
+
+.reveal-cards { display: flex; flex-direction: column; gap: 12px; }
+.reveal-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; opacity: 0.3; transition: opacity 0.4s; }
+.reveal-card.revealed { opacity: 1; }
+.reveal-card-header { padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+.reveal-item-name { font-size: 16px; font-weight: 700; }
+.status-badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+.badge-win{background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent);}
+.badge-bomb{background:var(--danger-dim);color:var(--danger);border:1px solid var(--danger);}
+.badge-none{background:var(--surface);color:var(--text2);border:1px solid var(--border);}
+.reveal-card-body { padding: 14px 18px; }
+.bid-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.bid-row:last-child { border-bottom: none; }
+.bid-rank { font-size: 12px; color: var(--text2); width: 36px; flex-shrink: 0; font-weight: 700; }
+.bid-nick { font-size: 14px; font-weight: 700; flex: 1; }
+.bid-nick.winner{color:var(--accent);} .bid-nick.bombed{color:var(--danger);text-decoration:line-through;} .bid-nick.next-winner{color:var(--gold);}
+.bid-lp { font-size: 13px; color: var(--text2); width: 55px; text-align: right; }
+.bid-lp.winner{color:var(--accent);font-weight:700;} .bid-lp.bombed{color:var(--danger);}
+.bid-score { font-size: 12px; font-weight: 700; color: var(--gold); width: 65px; text-align: right; }
+.bid-tag { font-size: 10px; padding: 2px 7px; border-radius: 10px; flex-shrink: 0; }
+.tag-target{background:var(--gold-dim);color:var(--gold);font-weight:700;}
+.tag-bomb{background:var(--danger-dim);color:var(--danger);font-weight:700;}
+.tag-next{background:var(--accent-dim);color:var(--accent);font-weight:700;}
+.no-bid-msg { font-size: 13px; color: var(--text2); padding: 6px 0; }
+
+.scoreboard-rows { display: flex; flex-direction: column; }
+.score-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.score-row:last-child { border-bottom: none; }
+.score-rank { font-size: 13px; color: var(--text2); width: 28px; font-weight: 700; }
+.score-rank.top { color: var(--gold); }
+.score-nick { font-size: 14px; font-weight: 500; flex: 1; }
+.score-detail { font-size: 12px; color: var(--text2); }
+.score-pts { font-size: 16px; font-weight: 700; color: var(--gold); }
+
+/* 종료 구분선 */
+.end-divider { grid-column: 1/-1; border: none; border-top: 1px dashed var(--border); margin: 4px 0; }
+
+@media (max-width: 600px) { .status-grid { grid-template-columns: repeat(2,1fr); } }
+</style>
+</head>
+<body>
+
+<div class="admin-header">
+  <div class="admin-title">🎯 가치관 눈치경매 · 교사 관리자</div>
+  <div class="header-right">
+    <div class="phase-badge" id="phaseBadge">대기 중</div>
+    <button class="reset-all-btn" onclick="resetAll()">⚠ 전체 리셋</button>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="status-grid">
+    <div class="stat-card"><div class="stat-label">참여 학생</div><div class="stat-val c-green" id="statPlayers">0명</div></div>
+    <div class="stat-card"><div class="stat-label">목표 선택 완료</div><div class="stat-val c-purple" id="statTargetDone">0명</div></div>
+    <div class="stat-card"><div class="stat-label">배팅 제출</div><div class="stat-val c-blue" id="statSubmitted">0명</div></div>
+    <div class="stat-card"><div class="stat-label">현재 단계</div><div class="stat-val c-gold" id="statPhase">대기</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">게임 진행 제어</div>
+    <div class="timer-display" id="timerDisplay">3:00</div>
+    <div class="btn-grid">
+      <button class="ctrl-btn btn-green btn-full" id="btnOpen" onclick="openGame()">▶ 대기실 오픈</button>
+      <button class="ctrl-btn btn-purple btn-full" id="btnTargetSelect" onclick="startTargetSelect()" disabled>📋 매물 공개 + 목표 선택 시작</button>
+      <button class="ctrl-btn btn-blue" id="btnStartR1" onclick="startBetting(1)" disabled>🎯 1라운드 배팅 시작</button>
+      <button class="ctrl-btn btn-gold" id="btnCloseR1" onclick="closeBetting(1)" disabled>⏱ 1라운드 배팅 마감</button>
+      <button class="ctrl-btn btn-green btn-full" id="btnRevealR1" onclick="startReveal(1)" disabled>📊 1라운드 결과 공개 시작</button>
+      <button class="ctrl-btn btn-blue" id="btnStartR2" onclick="startBetting(2)" disabled>🎯 2라운드 배팅 시작</button>
+      <button class="ctrl-btn btn-gold" id="btnCloseR2" onclick="closeBetting(2)" disabled>⏱ 2라운드 배팅 마감</button>
+      <button class="ctrl-btn btn-green btn-full" id="btnRevealR2" onclick="startReveal(2)" disabled>📊 2라운드 결과 공개 시작</button>
+      <hr class="end-divider">
+      <button class="ctrl-btn btn-gold btn-full" id="btnEnd" onclick="endGame()" disabled>🏁 게임 종료 (랭킹 공개)</button>
+      <button class="ctrl-btn btn-danger btn-full" id="btnDelete" onclick="deleteData()" disabled>🗑 데이터 삭제</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">참여자 현황</div>
+    <div class="players-grid" id="playersGrid"><span style="color:var(--text2);font-size:13px;">아직 참여자가 없어요</span></div>
+  </div>
+
+  <div class="panel" id="revealPanel" style="display:none">
+    <div class="panel-title" id="revealPanelTitle">결과 순차 공개</div>
+    <div class="reveal-nav">
+      <button class="reveal-btn" id="revealNextBtn" onclick="revealNext()">다음 매물 공개 →</button>
+      <span class="reveal-counter" id="revealCounter">0 / 0 공개됨</span>
+    </div>
+    <div class="reveal-cards" id="revealCards"></div>
+  </div>
+
+  <div class="panel" id="scoreboardPanel" style="display:none">
+    <div class="panel-title">점수판</div>
+    <div class="scoreboard-rows" id="scoreboardContent"></div>
+  </div>
+
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAS4hYbCtSpBXUsH_ue463gCVarqbnP7WY",
+  authDomain: "career-game-69c2f.firebaseapp.com",
+  databaseURL: "https://career-game-69c2f-default-rtdb.firebaseio.com",
+  projectId: "career-game-69c2f",
+  storageBucket: "career-game-69c2f.firebasestorage.app",
+  messagingSenderId: "856172881039",
+  appId: "1:856172881039:web:593b5fa4d3cfa2a6e63cfa"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const VALUE_ITEMS = [
+  {id:'v1',name:'💰 보수·안정'},{id:'v2',name:'⚖️ 워라밸'},
+  {id:'v3',name:'🎯 자율성'},{id:'v4',name:'😄 즐거움'},
+  {id:'v5',name:'🌱 성장'},{id:'v6',name:'🔥 도전'},
+  {id:'v7',name:'👑 영향력·인정'},{id:'v8',name:'🤝 관계·기여'}
+];
+const HOLLAND_ITEMS = [
+  {id:'h1',name:'🔧 만들기·기술'},{id:'h2',name:'🔬 분석·탐구'},
+  {id:'h3',name:'🌍 도전·탐험'},{id:'h4',name:'🎨 창작·표현'},
+  {id:'h5',name:'🤝 돕기·소통'},{id:'h6',name:'📢 이끌기·설득'},
+  {id:'h7',name:'💡 아이디어·운영'}
+];
+
+let playersData = {};
+let currentPhase = 'closed';
+let timerInterval = null;
+let revealIndex = 0;
+let revealItems = [];
+let revealResults = {};
+let currentRevealRound = 1;
+
+db.ref('gameState').set({ phase: 'closed' });
+db.ref('gameState').on('value', snap => {
+  if (snap.exists()) { currentPhase = snap.val().phase || 'closed'; updatePhaseDisplay(); }
+});
+db.ref('players').on('value', snap => {
+  playersData = snap.exists() ? snap.val() : {};
+  renderPlayers(); updateStats();
+});
+
+function updatePhaseDisplay() {
+  const labels = {
+    closed:'닫힘', waiting:'대기 중', target_select:'목표 선택',
+    betting_r1:'1라운드 배팅', betting_r2:'2라운드 배팅',
+    result_wait:'결과 집계', revealing_r1:'1라운드 공개',
+    revealing_r2:'2라운드 공개', ended:'종료'
+  };
+  const label = labels[currentPhase] || currentPhase;
+  document.getElementById('phaseBadge').textContent = label;
+  document.getElementById('statPhase').textContent = label;
+}
+
+function renderPlayers() {
+  const grid = document.getElementById('playersGrid');
+  const players = Object.values(playersData);
+  if (!players.length) { grid.innerHTML = '<span style="color:var(--text2);font-size:13px;">아직 참여자가 없어요</span>'; return; }
+  grid.innerHTML = players.map(p => {
+    const betDone = currentPhase==='betting_r1'?!!p.r1bet:currentPhase==='betting_r2'?!!p.r2bet:false;
+    const targetDone = !!(p.targets&&p.targets.length>0);
+    let cls = 'player-chip';
+    if (betDone) cls+=' submitted';
+    else if (targetDone&&currentPhase==='target_select') cls+=' target-done';
+    return `<div class="${cls}"><div class="player-dot"></div><div class="player-name">${p.nickname}</div></div>`;
+  }).join('');
+}
+
+function updateStats() {
+  document.getElementById('statPlayers').textContent = Object.keys(playersData).length+'명';
+  document.getElementById('statTargetDone').textContent = Object.values(playersData).filter(p=>p.targets&&p.targets.length>0).length+'명';
+  let sub = 0;
+  if (currentPhase==='betting_r1') sub=Object.values(playersData).filter(p=>p.r1bet).length;
+  else if (currentPhase==='betting_r2') sub=Object.values(playersData).filter(p=>p.r2bet).length;
+  document.getElementById('statSubmitted').textContent = sub+'명';
+}
+
+function setBtn(id, disabled) { document.getElementById(id).disabled = disabled; }
+
+// ── 전체 리셋 ──
+function resetAll() {
+  if (!confirm('⚠ 진행 중인 게임과 모든 데이터를 초기화할까요?')) return;
+  stopTimer();
+  db.ref('players').remove();
+  db.ref('results').remove();
+  db.ref('gameState').set({ phase: 'closed' });
+  ['btnOpen','btnTargetSelect','btnStartR1','btnCloseR1','btnRevealR1',
+   'btnStartR2','btnCloseR2','btnRevealR2','btnEnd','btnDelete'].forEach((id,i) => setBtn(id, i!==0));
+  document.getElementById('revealPanel').style.display = 'none';
+  document.getElementById('scoreboardPanel').style.display = 'none';
+  document.getElementById('revealCards').innerHTML = '';
+  revealIndex = 0;
+  alert('✅ 전체 리셋 완료!');
+}
+
+// ── 게임 흐름 ──
+function openGame() {
+  db.ref('gameState').set({ phase: 'waiting' });
+  setBtn('btnOpen',true); setBtn('btnTargetSelect',false);
+}
+function startTargetSelect() {
+  db.ref('gameState').set({ phase: 'target_select' });
+  setBtn('btnTargetSelect',true); setBtn('btnStartR1',false);
+}
+function startBetting(round) {
+  const endTime = Date.now() + 180000;
+  db.ref('gameState').set({ phase: 'betting_r'+round, timerEnd: endTime });
+  setBtn('btnStartR'+round,true); setBtn('btnCloseR'+round,false);
+  startAdminTimer(endTime);
+}
+function closeBetting(round) {
+  stopTimer();
+  db.ref('gameState').set({ phase: 'result_wait' });
+  setBtn('btnCloseR'+round,true);
+  calcAndSaveResults(round, () => setBtn('btnRevealR'+round,false));
+}
+
+// ── 결과 계산 ──
+function calcAndSaveResults(round, callback) {
+  const items = round===1?VALUE_ITEMS:HOLLAND_ITEMS;
+  const betField = 'r'+round+'bet';
+  const scoreField = 'r'+round+'score';
+  const players = Object.values(playersData);
+  const results = {};
+  const scoreUpdates = {};
+
+  // 잔여 LP 점수화
+  players.forEach(p => {
+    const bets = p[betField]||{};
+    const used = Object.values(bets).reduce((a,b)=>a+(parseInt(b)||0),0);
+    scoreUpdates[p.nickname] = (scoreUpdates[p.nickname]||0) + Math.max(0, 100-used);
+  });
+
+  items.forEach(item => {
+    const bids = players
+      .filter(p => p[betField]&&(parseInt(p[betField][item.id])||0)>0)
+      .map(p => ({nick:p.nickname, amount:parseInt(p[betField][item.id])||0, targets:p.targets||[]}))
+      .sort((a,b) => b.amount-a.amount);
+
+    if (!bids.length) { results[item.id]={winner:null,amount:0,bombed:false,allBids:[]}; return; }
+
+    // 새 폭사 룰: 금액대별로 단독 1명인 첫 번째를 찾아 낙찰
+    const allBidsData = bids.map(b=>({nick:b.nick,amount:b.amount}));
+    const amounts = [...new Set(bids.map(b=>b.amount))].sort((a,b)=>b-a);
+    
+    // 각 금액대의 배팅자 수 계산
+    const amountGroups = {};
+    amounts.forEach(amt => {
+      amountGroups[amt] = bids.filter(b=>b.amount===amt);
+    });
+    
+    // 폭사 목록과 낙찰자 찾기
+    const bombedPlayers = [];
+    let winnerBid = null;
+    
+    for (const amt of amounts) {
+      const group = amountGroups[amt];
+      if (group.length > 1) {
+        // 동점 → 전원 폭사
+        group.forEach(b => bombedPlayers.push(b.nick));
+      } else {
+        // 단독 → 낙찰!
+        winnerBid = group[0];
+        break;
+      }
+    }
+
+    if (bombedPlayers.length > 0 && !winnerBid) {
+      // 모두 폭사, 낙찰자 없음
+      results[item.id] = {
+        bombed:true, bombedPlayers, bombedAmount:'전원',
+        nextWinner:null, nextAmount:0, allBids:allBidsData
+      };
+    } else if (bombedPlayers.length > 0 && winnerBid) {
+      // 일부 폭사 + 낙찰자 존재
+      const isTarget = round===1&&(winnerBid.targets||[]).includes(item.id);
+      const score = 50+winnerBid.amount+(isTarget?50:0);
+      results[item.id] = {
+        bombed:true, bombedPlayers,
+        bombedAmount: amountGroups[bombedPlayers[0] ? bids.find(b=>b.nick===bombedPlayers[0]).amount : 0],
+        nextWinner:winnerBid.nick, nextAmount:winnerBid.amount,
+        nextScore:score, nextIsTarget:isTarget,
+        allBids:allBidsData
+      };
+      scoreUpdates[winnerBid.nick]=(scoreUpdates[winnerBid.nick]||0)+score;
+    } else {
+      // 폭사 없음, 단독 1위 낙찰
+      const winner = winnerBid;
+      const isTarget = round===1&&(winner.targets||[]).includes(item.id);
+      const score = 50+winner.amount+(isTarget?50:0);
+      results[item.id]={winner:winner.nick,amount:winner.amount,bombed:false,isTarget,score,allBids:allBidsData};
+      scoreUpdates[winner.nick]=(scoreUpdates[winner.nick]||0)+score;
+    }
+  });
+
+  const updates = {};
+  Object.keys(scoreUpdates).forEach(nick => { updates['players/'+nick+'/'+scoreField]=scoreUpdates[nick]; });
+  db.ref().update(updates);
+  db.ref('results/r'+round).set(results, ()=>{ if(callback) callback(); });
+}
+
+// ── 순차 공개 ──
+function startReveal(round) {
+  currentRevealRound = round;
+  revealIndex = 0;
+  revealItems = round===1?VALUE_ITEMS:HOLLAND_ITEMS;
+  db.ref('results/r'+round).once('value', snap => {
+    revealResults = snap.exists()?snap.val():{};
+    db.ref('gameState').set({ phase:'revealing_r'+round, revealedCount:0, results:{} });
+    renderRevealCards();
+    document.getElementById('revealPanel').style.display='block';
+    document.getElementById('revealPanelTitle').textContent=round+'라운드 결과 순차 공개';
+    updateRevealCounter();
+    setBtn('btnRevealR'+round,true);
+    document.getElementById('revealNextBtn').disabled=false;
+  });
+}
+
+function renderRevealCards() {
+  document.getElementById('revealCards').innerHTML = revealItems.map((item,idx) => `
+    <div class="reveal-card" id="rc-${idx}">
+      <div class="reveal-card-header" onclick="toggleRevealBody(${idx})" style="cursor:pointer;">
+        <span class="reveal-item-name">${item.name}</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="status-badge badge-none" id="rb-${idx}">미공개</span>
+          <span style="font-size:12px;color:var(--text2);" id="rarrow-${idx}">▼</span>
+        </div>
+      </div>
+      <div class="reveal-card-body" id="rbody-${idx}" style="display:none"></div>
+    </div>`).join('');
+}
+
+function toggleRevealBody(idx) {
+  const body = document.getElementById('rbody-'+idx);
+  const arrow = document.getElementById('rarrow-'+idx);
+  if (!body || body.innerHTML === '') return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  arrow.textContent = isOpen ? '▼' : '▲';
+}
+
+function revealNext() {
+  if (revealIndex>=revealItems.length) return;
+  const item = revealItems[revealIndex];
+  const r = revealResults[item.id];
+  const card = document.getElementById('rc-'+revealIndex);
+  const badge = document.getElementById('rb-'+revealIndex);
+  const body = document.getElementById('rbody-'+revealIndex);
+  card.classList.add('revealed');
+  body.style.display='none';  // 접힌 상태로 시작, 클릭으로 펼치기
+
+  const partialResults = {};
+  for (let i=0;i<=revealIndex;i++) {
+    const it = revealItems[i];
+    if (revealResults[it.id]) partialResults[it.id]=revealResults[it.id];
+  }
+  db.ref('gameState').update({ revealedCount:revealIndex+1, results:partialResults });
+
+  if (!r||(!r.winner&&!r.bombed)) {
+    badge.className='status-badge badge-none'; badge.textContent='입찰 없음';
+    body.innerHTML='<div class="no-bid-msg">이 매물에 입찰한 학생이 없어요.</div>';
+  } else if (r.bombed) {
+    badge.className='status-badge badge-bomb'; badge.textContent='💥 폭사!';
+    const bombSet=new Set(r.bombedPlayers||[]);
+    const allBids=r.allBids||[];
+    body.innerHTML=allBids.map((b,i)=>{
+      const isBombed=bombSet.has(b.nick);
+      const isNext=b.nick===r.nextWinner;
+      const tag=isBombed?'<span class="bid-tag tag-bomb">💥폭사</span>':isNext?'<span class="bid-tag tag-next">낙찰</span>':'';
+      const score=isNext?`<span class="bid-score">${r.nextScore||0}점</span>`:isBombed?'<span class="bid-score" style="color:var(--danger)">0점</span>':'<span class="bid-score" style="color:var(--text2)">-</span>';
+      return `<div class="bid-row"><span class="bid-rank">${i===0?'👑':(i+1)+'위'}</span><span class="bid-nick ${isBombed?'bombed':isNext?'next-winner':''}">${b.nick}</span>${tag}<span class="bid-lp ${isBombed?'bombed':''}">${b.amount}LP</span>${score}</div>`;
+    }).join('');
+  } else {
+    badge.className='status-badge badge-win'; badge.textContent='🏆 낙찰';
+    const allBids=r.allBids||[];
+    body.innerHTML=allBids.map((b,i)=>{
+      const isWin=b.nick===r.winner;
+      const tag=isWin&&r.isTarget?'<span class="bid-tag tag-target">⭐목표</span>':'';
+      const score=isWin?`<span class="bid-score">${r.score}점</span>`:'<span class="bid-score" style="color:var(--text2)">-</span>';
+      return `<div class="bid-row"><span class="bid-rank">${i===0?'🏆':(i+1)+'위'}</span><span class="bid-nick ${isWin?'winner':''}">${b.nick}</span>${tag}<span class="bid-lp ${isWin?'winner':''}">${b.amount}LP</span>${score}</div>`;
+    }).join('');
+  }
+
+  revealIndex++;
+  updateRevealCounter();
+
+  if (revealIndex>=revealItems.length) {
+    document.getElementById('revealNextBtn').disabled=true;
+    renderScoreboard();
+    const phase = currentRevealRound===1?'show_result_r1':'show_result_r2';
+    db.ref('gameState').set({ phase, results:revealResults });
+    if (currentRevealRound===1) setBtn('btnStartR2',false);
+    else setBtn('btnEnd',false);
+  }
+}
+
+function updateRevealCounter() {
+  document.getElementById('revealCounter').textContent=revealIndex+' / '+revealItems.length+' 공개됨';
+}
+
+// ── 점수판 ──
+function renderScoreboard() {
+  document.getElementById('scoreboardPanel').style.display='block';
+  const players = Object.values(playersData)
+    .map(p=>({nick:p.nickname,r1:p.r1score||0,r2:p.r2score||0,total:(p.r1score||0)+(p.r2score||0)}))
+    .sort((a,b)=>b.total-a.total);
+  document.getElementById('scoreboardContent').innerHTML=players.map((p,i)=>`
+    <div class="score-row">
+      <div class="score-rank${i<3?' top':''}">${i+1}위</div>
+      <div class="score-nick">${p.nick}</div>
+      <div class="score-detail">${p.r1} + ${p.r2}</div>
+      <div class="score-pts">${p.total}점</div>
+    </div>`).join('');
+  return players;
+}
+
+// ── 게임 종료 (랭킹 공개, 데이터 삭제 별도) ──
+function endGame() {
+  if (!confirm('게임을 종료하고 학생 화면에 최종 랭킹을 공개할까요?')) return;
+  const players = Object.values(playersData)
+    .map(p=>({nick:p.nickname,r1:p.r1score||0,r2:p.r2score||0,total:(p.r1score||0)+(p.r2score||0)}))
+    .sort((a,b)=>b.total-a.total);
+
+  const totalScores = {};
+  players.forEach(p=>{ totalScores[p.nick]=p.total; });
+
+  db.ref('gameState').set({ phase:'ended', rankings:players, totalScores });
+  setBtn('btnEnd',true);
+  setBtn('btnDelete',false);
+}
+
+// ── 데이터 삭제 (별도) ──
+function deleteData() {
+  if (!confirm('🗑 모든 게임 데이터를 삭제할까요?\n학생 화면이 초기화됩니다.')) return;
+  db.ref('players').remove();
+  db.ref('results').remove();
+  db.ref('gameState').set({ phase:'closed' });
+  setTimeout(() => {
+    alert('✅ 모든 데이터가 삭제됐어요!');
+    location.reload();
+  }, 1000);
+}
+
+// ── 타이머 ──
+function startAdminTimer(endTime) {
+  const display = document.getElementById('timerDisplay');
+  display.style.display='block';
+  timerInterval = setInterval(()=>{
+    const left = Math.max(0, endTime-Date.now());
+    const min = Math.floor(left/60000);
+    const sec = Math.floor((left%60000)/1000);
+    display.textContent = min+':'+String(sec).padStart(2,'0');
+    if (left<=0) stopTimer();
+  }, 500);
+}
+function stopTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  document.getElementById('timerDisplay').style.display='none';
+  timerInterval=null;
+}
+</script>
+</body>
+</html>

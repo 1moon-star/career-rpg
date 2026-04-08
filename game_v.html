@@ -274,10 +274,14 @@ db.ref('players').on('value', snap => {
   const dn=pl.filter(p=>p.targets&&p.targets.length>0).length;
   if($v('targetDoneCount')) $v('targetDoneCount').textContent=dn;
   if($v('targetDoneSub')) $v('targetDoneSub').textContent=`전체 ${n}명 중 ${n-dn}명 선택 중...`;
-  const r1=pl.filter(p=>p.r1bet).length,r2=pl.filter(p=>p.r2bet).length;
-  // 현재 라운드에 맞는 제출 수 표시
-  const submitCount = _lp==='betting_r2' ? r2 : r1;
-  if($v('betSubmitCount')) $v('betSubmitCount').textContent=submitCount;
+  // 배팅 제출 수는 gameState phase를 기준으로 계산
+  if(_lp==='betting_r1') {
+    const c=pl.filter(p=>p.r1bet).length;
+    if($v('betSubmitCount')) $v('betSubmitCount').textContent=c;
+  } else if(_lp==='betting_r2') {
+    const c=pl.filter(p=>p.r2bet).length;
+    if($v('betSubmitCount')) $v('betSubmitCount').textContent=c;
+  }
 });
 
 db.ref('gameState').on('value', snap => {
@@ -299,6 +303,12 @@ function onState(state) {
     case 'betting_r2':
       setLabel('2라운드 배팅');
       if($v('betRoundLabel')) $v('betRoundLabel').textContent='2라운드 · 흥미유형';
+      // 2라운드 진입 시 r2bet 기준으로 즉시 카운트 업데이트
+      db.ref('players').once('value', snap => {
+        const pl = snap.exists() ? Object.values(snap.val()) : [];
+        const c = pl.filter(p=>p.r2bet).length;
+        if($v('betSubmitCount')) $v('betSubmitCount').textContent=c;
+      });
       showVS('betting'); if(chg) sBet(); startTimer(state.timerEnd); break;
     case 'preview_r2':
       setLabel('2라운드 준비');

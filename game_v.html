@@ -259,7 +259,9 @@ db.ref('players').on('value', snap => {
   if($v('targetDoneCount')) $v('targetDoneCount').textContent=dn;
   if($v('targetDoneSub')) $v('targetDoneSub').textContent=`전체 ${n}명 중 ${n-dn}명 선택 중...`;
   const r1=pl.filter(p=>p.r1bet).length,r2=pl.filter(p=>p.r2bet).length;
-  if($v('betSubmitCount')) $v('betSubmitCount').textContent=Math.max(r1,r2);
+  // 현재 라운드에 맞는 제출 수 표시
+  const submitCount = _lp==='betting_r2' ? r2 : r1;
+  if($v('betSubmitCount')) $v('betSubmitCount').textContent=submitCount;
 });
 
 db.ref('gameState').on('value', snap => {

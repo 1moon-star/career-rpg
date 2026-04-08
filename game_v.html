@@ -281,7 +281,7 @@ function toggleMute() {
 // 기본 오실레이터 생성
 function playTone(freq, duration, type='square', vol=0.3, delay=0) {
   if (isMuted) return;
-  const ctx = getCtx();
+  const ctx = getAudioCtx();
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.connect(gain);
@@ -350,7 +350,7 @@ function soundWin() {
 // 💥 폭사 - 하강 전자음
 function soundBomb() {
   if (isMuted) return;
-  const ctx = getCtx();
+  const ctx = getAudioCtx();
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.connect(gain);
@@ -452,7 +452,10 @@ db.ref('gameState').on('value', snap => {
   handleViewerState(state);
 });
 
+let _lastPhase = '';
 function handleViewerState(state) {
+  const phaseChanged = state.phase !== _lastPhase;
+  _lastPhase = state.phase;
   switch (state.phase) {
     case 'closed':
     case 'waiting':
@@ -467,14 +470,14 @@ function handleViewerState(state) {
       setPhaseLabel('1라운드 배팅');
       document.getElementById('betRoundLabel').textContent = '1라운드 · 직업가치관';
       showVScreen('betting');
-      soundBettingStart();
+      if (phaseChanged) soundBettingStart();
       startViewerTimer(state.timerEnd); break;
 
     case 'betting_r2':
       setPhaseLabel('2라운드 배팅');
       document.getElementById('betRoundLabel').textContent = '2라운드 · 흥미유형';
       showVScreen('betting');
-      soundBettingStart();
+      if (phaseChanged) soundBettingStart();
       startViewerTimer(state.timerEnd); break;
 
     case 'result_wait':
@@ -492,13 +495,14 @@ function handleViewerState(state) {
 
     case 'show_result_r1':
     case 'show_result_r2':
-      // 전체 공개 완료 - 마지막 매물 결과 유지
+      // 전체 공개 완료 - revealing 화면 그대로 유지 (마지막 결과 표시)
+      setPhaseLabel('결과 공개 완료');
       break;
 
     case 'ended':
       setPhaseLabel('게임 종료');
       stopViewerTimer();
-      soundRanking();
+      if (phaseChanged) soundFanfare();
       showRanking(state.rankings || []); break;
   }
 }
@@ -575,8 +579,8 @@ function updateViewerReveal(results, revealedCount) {
   // 매물 공개 사운드
   soundReveal();
 
-  // 현재 매물 표시
-  soundReveal();
+  // 현재 매물 표시 (새로 공개된 경우에만 사운드)
+  setTimeout(() => soundReveal(), 100);
   document.getElementById('revealItemTitle').textContent = item.name;
 
   if (!r || (!r.winner && !r.bombed)) {

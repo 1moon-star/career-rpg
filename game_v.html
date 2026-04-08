@@ -134,6 +134,22 @@ body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: va
   <div class="bet-silence">🤫 침묵</div>
 </div>
 
+<!-- 2라운드 미리보기 -->
+<div class="vscreen" id="vs-preview-r2">
+  <div class="wait-title" style="font-size:36px;color:#aa66ff;">2라운드 · 흥미유형 경매</div>
+  <div class="wait-sub" style="margin-bottom:2rem;">내가 좋아하는 활동 유형을 경매해요!</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;max-width:900px;width:100%;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;"><div style="font-size:20px;font-weight:700;">🔧 만들기·기술</div></div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;"><div style="font-size:20px;font-weight:700;">🔬 분석·탐구</div></div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;"><div style="font-size:20px;font-weight:700;">🌍 도전·탐험</div></div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;"><div style="font-size:20px;font-weight:700;">🎨 창작·표현</div></div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;"><div style="font-size:20px;font-weight:700;">🤝 돕기·소통</div></div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;"><div style="font-size:20px;font-weight:700;">📢 이끌기·설득</div></div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;"><div style="font-size:20px;font-weight:700;">💡 아이디어·운영</div></div>
+  </div>
+  <div style="margin-top:2rem;font-size:18px;color:var(--text2);">배팅 시작을 기다리는 중...</div>
+</div>
+
 <!-- 집계 중 -->
 <div class="vscreen" id="vs-result-wait">
   <div class="wait-title" style="font-size:36px;">결과 집계 중...</div>
@@ -284,6 +300,9 @@ function onState(state) {
       setLabel('2라운드 배팅');
       if($v('betRoundLabel')) $v('betRoundLabel').textContent='2라운드 · 흥미유형';
       showVS('betting'); if(chg) sBet(); startTimer(state.timerEnd); break;
+    case 'preview_r2':
+      setLabel('2라운드 준비');
+      showVS('preview-r2'); break;
     case 'result_wait':
       setLabel('결과 집계'); stopTimer(); showVS('result-wait'); break;
     case 'revealing_r1': case 'revealing_r2':

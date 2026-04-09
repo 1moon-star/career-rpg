@@ -189,6 +189,12 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .modal-overlay.open{display:flex;}
 .modal-box{background:var(--panel);border:2px solid var(--border);border-radius:20px;padding:32px 36px;max-width:540px;width:100%;position:relative;animation:modalIn 0.25s ease;max-height:90vh;overflow-y:auto;}
 @keyframes modalIn{from{transform:scale(0.9);opacity:0;}to{transform:scale(1);opacity:1;}}
+@keyframes questPulse{from{transform:scale(1);}to{transform:scale(1.15);}}
+@keyframes gradeReveal{0%{transform:scale(0.3) rotate(-15deg);opacity:0;}60%{transform:scale(1.2) rotate(5deg);opacity:1;}100%{transform:scale(1) rotate(0deg);opacity:1;}}
+@keyframes fadeInUp{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.result-big-emoji{animation:gradeReveal 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards;}
+.result-outcome{animation:fadeInUp 0.4s 0.3s ease both;}
+.result-feedback{animation:fadeInUp 0.4s 0.5s ease both;}
 .modal-close{position:absolute;top:14px;right:18px;background:none;border:none;cursor:pointer;font-size:22px;color:var(--text2);transition:color 0.2s;}
 .modal-close:hover{color:var(--text);}
 .modal-category{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;}
@@ -510,6 +516,25 @@ canvas{max-width:100%;}
 </div>
 
 <!-- 결과 모달 -->
+<!-- 퀘스트 도전 연출 오버레이 -->
+<div id="challenge-overlay" style="
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,0.92);
+  z-index:200;
+  align-items:center;justify-content:center;
+  flex-direction:column;gap:20px;
+">
+  <div id="challenge-quest-emoji" style="font-size:64px;animation:questPulse 0.6s ease-in-out infinite alternate;"></div>
+  <div id="challenge-quest-name" style="font-family:'Press Start 2P',monospace;font-size:11px;color:rgba(255,255,255,0.8);text-align:center;letter-spacing:2px;line-height:1.8;max-width:280px;"></div>
+  <div style="width:240px;height:8px;background:rgba(255,255,255,0.15);border-radius:4px;overflow:hidden;margin-top:8px;">
+    <div id="challenge-progress" style="height:100%;width:0%;background:linear-gradient(90deg,#7c5cfc,#fc5c7d);border-radius:4px;transition:width 0.05s linear;"></div>
+  </div>
+  <div id="challenge-status" style="font-family:'Noto Sans KR',sans-serif;font-size:13px;color:rgba(255,255,255,0.5);letter-spacing:1px;">도전 중...</div>
+</div>
+
+<!-- 결과 폭죽 캔버스 -->
+<canvas id="confetti-canvas" style="display:none;position:fixed;inset:0;z-index:150;pointer-events:none;"></canvas>
+
 <div class="modal-overlay" id="result-modal">
   <div class="modal-box result-modal">
     <div id="result-done-badge" style="display:none;background:rgba(124,92,252,0.12);border:1px solid rgba(124,92,252,0.3);border-radius:8px;padding:5px 13px;font-size:10px;color:var(--accent3);margin-bottom:14px;font-family:'Press Start 2P',monospace;">📋 이전 도전 결과</div>
@@ -1122,9 +1147,130 @@ function attemptQuest(){
   };
   records=records.filter(r=>r.questId!==q.id);
   records.unshift(rec);
-  showResult(rec,false);
-  renderQuests(activeFilter);
-  updateRecordScreen();
+
+  // 퀘스트 도전 연출 후 결과 표시
+  playQuestChallenge(q, rec, finalGrade, function() {
+    showResult(rec,false);
+    renderQuests(activeFilter);
+    updateRecordScreen();
+  });
+}
+
+// ============================================================
+// 퀘스트 도전 연출
+// ============================================================
+function playQuestChallenge(q, rec, grade, callback) {
+  const overlay = document.getElementById('challenge-overlay');
+  const emojiEl = document.getElementById('challenge-quest-emoji');
+  const nameEl = document.getElementById('challenge-quest-name');
+  const progressEl = document.getElementById('challenge-progress');
+  const statusEl = document.getElementById('challenge-status');
+
+  // 등급별 연출 설정
+  const gradeEffects = {
+    '새싹':    { color:'#8afc5c', messages:['도전 중...','결과 집계 중...','분석 완료!'] },
+    '어린나무': { color:'#5cfc8a', messages:['도전 중...','능력치 계산 중...','분석 완료!'] },
+    '꽃나무':  { color:'#fc9c5c', messages:['도전 중!','능력이 빛나고 있어!','분석 완료!'] },
+    '과일나무': { color:'#ffd700', messages:['도전 중!','강점 발휘 중!','✨ 분석 완료!'] },
+    '세계수':  { color:'#fc5cfc', messages:['도전 중!','전설적인 능력!','🌟 분석 완료!'] },
+  };
+  const effect = gradeEffects[rec.grade] || gradeEffects['새싹'];
+
+  emojiEl.textContent = q.emoji || '⚔️';
+  nameEl.textContent = q.name;
+  progressEl.style.background = `linear-gradient(90deg, ${effect.color}, #7c5cfc)`;
+  progressEl.style.width = '0%';
+  statusEl.textContent = effect.messages[0];
+  statusEl.style.color = 'rgba(255,255,255,0.5)';
+
+  overlay.style.display = 'flex';
+
+  // 진행바 애니메이션
+  let pct = 0;
+  const duration = rec.grade === '세계수' ? 2200 :
+                   rec.grade === '과일나무' ? 1800 :
+                   rec.grade === '꽃나무' ? 1500 : 1200;
+  const interval = 30;
+  const steps = duration / interval;
+  let step = 0;
+
+  const timer = setInterval(() => {
+    step++;
+    pct = Math.min(100, Math.round((step / steps) * 100));
+    progressEl.style.width = pct + '%';
+
+    // 메시지 전환
+    if(pct >= 40 && pct < 41) statusEl.textContent = effect.messages[1];
+    if(pct >= 85 && pct < 86) {
+      statusEl.textContent = effect.messages[2];
+      statusEl.style.color = effect.color;
+    }
+
+    if(pct >= 100) {
+      clearInterval(timer);
+      setTimeout(() => {
+        overlay.style.display = 'none';
+        // 과일나무·세계수면 폭죽 실행
+        if(rec.grade === '과일나무' || rec.grade === '세계수') {
+          launchConfetti(rec.grade === '세계수');
+        }
+        callback();
+      }, 300);
+    }
+  }, interval);
+}
+
+// 폭죽 효과
+function launchConfetti(isWorldTree) {
+  const canvas = document.getElementById('confetti-canvas');
+  canvas.style.display = 'block';
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+
+  const colors = isWorldTree
+    ? ['#fc5cfc','#ffd700','#7c5cfc','#5cf0fc','#fc5c7d']
+    : ['#ffd700','#fc9c5c','#7c5cfc','#5cfc8a','#5cf0fc'];
+
+  const particles = Array.from({length: isWorldTree ? 120 : 70}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height * 0.3,
+    r: Math.random() * 6 + 3,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    vx: (Math.random() - 0.5) * 6,
+    vy: Math.random() * 4 + 2,
+    alpha: 1,
+    rotation: Math.random() * 360,
+    rotSpeed: (Math.random() - 0.5) * 8,
+  }));
+
+  let frame = 0;
+  const maxFrames = isWorldTree ? 90 : 60;
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.12;
+      p.alpha = Math.max(0, 1 - frame / maxFrames);
+      p.rotation += p.rotSpeed;
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation * Math.PI / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.r, -p.r/2, p.r*2, p.r);
+      ctx.restore();
+    });
+    frame++;
+    if(frame < maxFrames) requestAnimationFrame(draw);
+    else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      canvas.style.display = 'none';
+    }
+  }
+  requestAnimationFrame(draw);
 }
 
 function showResult(rec,isDone){

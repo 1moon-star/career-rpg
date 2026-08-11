@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>발표수업 순서 확인 | 진로와 직업</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+
+<style>
+  :root{
+    --yellow:#FFC93C;
+    --pink:#FF5C7A;
+    --teal:#2EC4B6;
+    --purple:#B983FF;
+    --ink:#1A1A1A;
+    --bg:#FFFFFF;
+    --card:#FAFAFA;
+    --line:#1A1A1A;
+    --muted:#8A8A8A;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  header{
+    background:var(--ink);
+    color:#fff;
+    padding:22px 20px 26px;
+    border-radius:0 0 24px 24px;
+  }
+  header .eyebrow{
+    display:inline-block;
+    font-size:12px;
+    font-weight:800;
+    letter-spacing:.08em;
+    background:var(--yellow);
+    color:var(--ink);
+    padding:4px 10px;
+    border-radius:999px;
+    margin-bottom:10px;
+  }
+  header h1{
+    margin:0;
+    font-size:22px;
+    font-weight:800;
+    line-height:1.35;
+  }
+  header p{
+    margin:6px 0 0;
+    font-size:13px;
+    color:#cfcfcf;
+  }
+
+  main{
+    max-width:640px;
+    margin:0 auto;
+    padding:22px 18px 60px;
+  }
+
+  section.block{margin-bottom:28px;}
+  h2.section-title{
+    font-size:14px;
+    font-weight:800;
+    color:var(--muted);
+    letter-spacing:.03em;
+    margin:0 0 12px;
+  }
+
+  /* 반 선택 그리드 */
+  #classGrid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+  }
+  .class-btn{
+    aspect-ratio:1/1;
+    border:2.5px solid var(--line);
+    border-radius:12px;
+    background:#fff;
+    font-family:inherit;
+    font-weight:800;
+    font-size:16px;
+    color:var(--ink);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .class-btn:hover{transform:translateY(-2px);}
+  .class-btn:focus-visible{outline:3px solid var(--teal); outline-offset:2px;}
+  .class-btn.active{
+    background:var(--yellow);
+    box-shadow:3px 3px 0 var(--line);
+    transform:translate(-2px,-2px);
+  }
+
+  /* 검색 + 목록 */
+  #resultArea{display:none;}
+  #resultArea.show{display:block;}
+
+  .search-wrap{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    border:2.5px solid var(--line);
+    border-radius:12px;
+    padding:10px 14px;
+    margin-bottom:14px;
+    background:#fff;
+  }
+  .search-wrap input{
+    flex:1;
+    border:none;
+    outline:none;
+    font-family:inherit;
+    font-size:15px;
+    background:transparent;
+  }
+  .search-wrap svg{flex-shrink:0;}
+
+  .status-line{
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:10px;
+  }
+
+  ul#orderList{
+    list-style:none;
+    margin:0;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  ul#orderList li{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    border:2px solid var(--line);
+    border-radius:12px;
+    padding:10px 14px;
+    background:var(--card);
+    transition:opacity .15s ease;
+  }
+  ul#orderList li.dim{opacity:.25;}
+  ul#orderList li.match{
+    background:#fff;
+    box-shadow:2px 2px 0 var(--line);
+  }
+  .badge{
+    flex-shrink:0;
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    border:2px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:800;
+    font-size:14px;
+  }
+  .name{font-weight:700; font-size:15px;}
+
+  .empty-msg, .loading-msg{
+    text-align:center;
+    padding:40px 10px;
+    color:var(--muted);
+    font-size:14px;
+    border:2px dashed #ccc;
+    border-radius:12px;
+  }
+
+  /* 관리자 토글 */
+  #adminToggle{
+    display:block;
+    margin:40px auto 0;
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:12px;
+    text-decoration:underline;
+    cursor:pointer;
+    font-family:inherit;
+  }
+
+  #adminPanel{
+    display:none;
+    margin-top:16px;
+    border:2.5px solid var(--line);
+    border-radius:14px;
+    padding:16px;
+    background:#FFF8E7;
+  }
+  #adminPanel.show{display:block;}
+  #adminPanel h3{
+    margin:0 0 6px;
+    font-size:14px;
+    font-weight:800;
+  }
+  #adminPanel p.hint{
+    margin:0 0 12px;
+    font-size:12px;
+    color:var(--muted);
+    line-height:1.6;
+  }
+  #adminPanel textarea{
+    width:100%;
+    min-height:180px;
+    border:2px solid var(--line);
+    border-radius:10px;
+    padding:10px 12px;
+    font-family:inherit;
+    font-size:14px;
+    resize:vertical;
+    margin-bottom:12px;
+  }
+  .admin-btns{display:flex; gap:8px; flex-wrap:wrap;}
+  .admin-btns button{
+    flex:1;
+    min-width:120px;
+    border:2.5px solid var(--line);
+    border-radius:10px;
+    padding:10px 12px;
+    font-family:inherit;
+    font-weight:800;
+    font-size:13px;
+    cursor:pointer;
+  }
+  #btnShuffle{background:var(--pink);}
+  #btnSaveAsIs{background:var(--teal);}
+  #btnClear{background:#fff; flex:0 0 auto; min-width:80px;}
+  .admin-status{
+    margin-top:10px;
+    font-size:12px;
+    font-weight:700;
+  }
+
+  .config-warning{
+    background:var(--purple);
+    border:2.5px solid var(--line);
+    border-radius:12px;
+    padding:14px 16px;
+    font-size:13px;
+    line-height:1.6;
+    margin-bottom:20px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="eyebrow">2학기 진로와 직업</span>
+  <h1>발표수업 순서 확인</h1>
+  <p>반을 선택하면 발표 순서를 바로 확인할 수 있어요.</p>
+</header>
+
+<main>
+
+  <div id="configWarning" class="config-warning" style="display:none;">
+    ⚠️ Firebase 설정이 아직 연결되지 않았어요. 코드 안의 <code>firebaseConfig</code> 값을 실제 프로젝트 설정으로 바꿔주세요.
+  </div>
+
+  <section class="block">
+    <h2 class="section-title">반 선택</h2>
+    <div id="classGrid"></div>
+  </section>
+
+  <section class="block" id="resultArea">
+    <h2 class="section-title" id="resultTitle">- </h2>
+
+    <div class="search-wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8A8A" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="searchInput" placeholder="이름으로 찾기">
+    </div>
+
+    <div class="status-line" id="statusLine"></div>
+
+    <div id="listWrap"></div>
+  </section>
+
+  <button id="adminToggle" type="button">선생님이신가요?</button>
+
+  <div id="adminPanel">
+    <h3>🔧 순서 관리 (선택된 반: <span id="adminClassLabel">-</span>)</h3>
+    <p class="hint">
+      한 줄에 한 명씩 이름을 입력하세요. (번호를 앞에 붙여도 자동으로 무시돼요)<br>
+      <b>랜덤 배정</b>은 아래 이름들을 섞어서 1번부터 새로 순서를 매겨요.<br>
+      <b>그대로 저장</b>은 순서를 섞지 않고 지금 적힌 순서/내용 그대로 저장해요. (결석·조퇴 재배정 시 사용)
+    </p>
+    <textarea id="nameInput" placeholder="예)&#10;홍길동&#10;김영희&#10;이철수"></textarea>
+    <div class="admin-btns">
+      <button id="btnShuffle" type="button">🎲 랜덤 배정</button>
+      <button id="btnSaveAsIs" type="button">💾 그대로 저장</button>
+      <button id="btnClear" type="button">초기화</button>
+    </div>
+    <div class="admin-status" id="adminStatus"></div>
+  </div>
+
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
+
+/* ============================================================
+   1) Firebase 설정 (jinro-2 프로젝트)
+============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyA0AjQ_YCRoVT0Dz79dlqiDPDXyGtdkwVo",
+  authDomain: "jinro-2.firebaseapp.com",
+  databaseURL: "https://jinro-2-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "jinro-2",
+  storageBucket: "jinro-2.firebasestorage.app",
+  messagingSenderId: "223300345850",
+  appId: "1:223300345850:web:5a61932edeada05e030e43"
+};
+
+// 관리자 패널 진입 시 물어볼 간단한 암호 (보안용이 아니라 학생들의 실수 방지용입니다)
+const ADMIN_PASSCODE = "dh2026";
+
+// 반 개수
+const CLASS_COUNT = 12;
+
+const CONFIGURED = firebaseConfig.apiKey !== "YOUR_API_KEY";
+let db = null;
+
+if (CONFIGURED) {
+  const app = initializeApp(firebaseConfig);
+  db = getDatabase(app);
+} else {
+  document.getElementById('configWarning').style.display = 'block';
+}
+
+/* ============================================================
+   2) 상태
+============================================================ */
+let selectedClass = null;
+let currentList = [];   // [{order, name}]
+let activeListener = null;
+
+const badgeColors = ['var(--yellow)', 'var(--purple)', 'var(--pink)'];
+
+/* ============================================================
+   3) 반 선택 그리드 렌더
+============================================================ */
+const classGrid = document.getElementById('classGrid');
+for (let i = 1; i <= CLASS_COUNT; i++) {
+  const btn = document.createElement('button');
+  btn.className = 'class-btn';
+  btn.type = 'button';
+  btn.textContent = i + '반';
+  btn.addEventListener('click', () => selectClass(i));
+  classGrid.appendChild(btn);
+}
+
+function selectClass(n) {
+  selectedClass = n;
+  document.querySelectorAll('.class-btn').forEach((b, idx) => {
+    b.classList.toggle('active', idx === n - 1);
+  });
+  document.getElementById('resultArea').classList.add('show');
+  document.getElementById('resultTitle').textContent = n + '반 발표 순서';
+  document.getElementById('adminClassLabel').textContent = n + '반';
+  document.getElementById('searchInput').value = '';
+  loadClassData(n);
+}
+
+/* ============================================================
+   4) 데이터 로드 (실시간)
+============================================================ */
+function loadClassData(n) {
+  document.getElementById('listWrap').innerHTML = '<div class="loading-msg">불러오는 중...</div>';
+
+  if (!CONFIGURED) {
+    document.getElementById('listWrap').innerHTML = '<div class="empty-msg">Firebase 설정 후 확인할 수 있어요.</div>';
+    return;
+  }
+
+  if (activeListener) {
+    activeListener();  // 이전 리스너 해제 (unsubscribe 함수 호출)
+  }
+
+  const classRef = ref(db, 'presentationOrder/class' + n);
+  activeListener = onValue(classRef, (snap) => {
+    const data = snap.val();
+    currentList = (data && data.list) ? data.list : [];
+    updateStatusLine(data);
+    renderList();
+    if (adminPanel.classList.contains('show')) {
+      fillAdminTextarea();
+    }
+  });
+}
+
+function updateStatusLine(data) {
+  const el = document.getElementById('statusLine');
+  if (data && data.updatedAt) {
+    const d = new Date(data.updatedAt);
+    el.textContent = `총 ${currentList.length}명 · 마지막 업데이트 ${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  } else {
+    el.textContent = '';
+  }
+}
+
+/* ============================================================
+   5) 목록 렌더 (검색 필터 포함)
+============================================================ */
+document.getElementById('searchInput').addEventListener('input', renderList);
+
+function renderList() {
+  const wrap = document.getElementById('listWrap');
+  const term = document.getElementById('searchInput').value.trim();
+
+  if (!currentList.length) {
+    wrap.innerHTML = '<div class="empty-msg">아직 순서가 배정되지 않았어요.<br>선생님이 곧 배정할 예정이에요!</div>';
+    return;
+  }
+
+  const ul = document.createElement('ul');
+  ul.id = 'orderList';
+
+  currentList
+    .slice()
+    .sort((a, b) => a.order - b.order)
+    .forEach((item) => {
+      const li = document.createElement('li');
+      const isMatch = term && item.name.includes(term);
+      const isSearching = term.length > 0;
+
+      if (isSearching) {
+        li.classList.add(isMatch ? 'match' : 'dim');
+      }
+
+      const badge = document.createElement('div');
+      badge.className = 'badge';
+      badge.style.background = badgeColors[(item.order - 1) % 3];
+      badge.textContent = item.order;
+
+      const name = document.createElement('div');
+      name.className = 'name';
+      name.textContent = item.name;
+
+      li.appendChild(badge);
+      li.appendChild(name);
+      ul.appendChild(li);
+    });
+
+  wrap.innerHTML = '';
+  wrap.appendChild(ul);
+}
+
+/* ============================================================
+   6) 관리자 패널
+============================================================ */
+const adminToggle = document.getElementById('adminToggle');
+const adminPanel = document.getElementById('adminPanel');
+
+adminToggle.addEventListener('click', () => {
+  if (adminPanel.classList.contains('show')) {
+    adminPanel.classList.remove('show');
+    return;
+  }
+  const input = prompt('관리자 암호를 입력하세요');
+  if (input === ADMIN_PASSCODE) {
+    adminPanel.classList.add('show');
+    if (selectedClass) fillAdminTextarea();
+  } else if (input !== null) {
+    alert('암호가 올바르지 않아요.');
+  }
+});
+
+function fillAdminTextarea() {
+  const ta = document.getElementById('nameInput');
+  if (currentList.length) {
+    ta.value = currentList
+      .slice()
+      .sort((a, b) => a.order - b.order)
+      .map(item => `${item.order}. ${item.name}`)
+      .join('\n');
+  } else {
+    ta.value = '';
+  }
+}
+
+function parseNames(raw) {
+  return raw
+    .split('\n')
+    .map(line => line.replace(/^\s*\d+[\.\)]?\s*/, '').trim())
+    .filter(line => line.length > 0);
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function saveList(list) {
+  if (!selectedClass) {
+    setAdminStatus('먼저 반을 선택해주세요.', true);
+    return;
+  }
+  if (!CONFIGURED) {
+    setAdminStatus('Firebase 설정이 필요해요.', true);
+    return;
+  }
+  set(ref(db, 'presentationOrder/class' + selectedClass), {
+    list,
+    updatedAt: Date.now()
+  }).then(() => {
+    setAdminStatus('저장 완료!', false);
+  }).catch((err) => {
+    setAdminStatus('저장 실패: ' + err.message, true);
+  });
+}
+
+document.getElementById('btnShuffle').addEventListener('click', () => {
+  const names = parseNames(document.getElementById('nameInput').value);
+  if (!names.length) {
+    setAdminStatus('이름을 먼저 입력해주세요.', true);
+    return;
+  }
+  const shuffled = shuffle(names);
+  const list = shuffled.map((name, idx) => ({ order: idx + 1, name }));
+  saveList(list);
+});
+
+document.getElementById('btnSaveAsIs').addEventListener('click', () => {
+  const names = parseNames(document.getElementById('nameInput').value);
+  if (!names.length) {
+    setAdminStatus('이름을 먼저 입력해주세요.', true);
+    return;
+  }
+  const list = names.map((name, idx) => ({ order: idx + 1, name }));
+  saveList(list);
+});
+
+document.getElementById('btnClear').addEventListener('click', () => {
+  if (!selectedClass) return;
+  if (!confirm(selectedClass + '반 순서를 정말 초기화할까요?')) return;
+  saveList([]);
+  document.getElementById('nameInput').value = '';
+});
+
+function setAdminStatus(msg, isError) {
+  const el = document.getElementById('adminStatus');
+  el.textContent = msg;
+  el.style.color = isError ? 'var(--pink)' : 'var(--teal)';
+  setTimeout(() => { el.textContent = ''; }, 3000);
+}
+</script>
+
+</body>
+</html>

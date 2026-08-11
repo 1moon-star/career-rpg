@@ -289,10 +289,11 @@
   <div id="adminPanel">
     <h3>🔧 순서 관리 (선택된 반: <span id="adminClassLabel">-</span>)</h3>
     <p class="hint">
-      한 줄에 한 명씩 이름을 입력하세요. (번호를 앞에 붙여도 자동으로 무시돼요)<br>
-      <b>랜덤 배정</b>은 아래 이름들을 섞어서 1번부터 새로 순서를 매겨요.<br>
+      <b>📋 신청자 불러오기</b>를 누르면 구글폼으로 신청한 사람들이 자동으로 채워져요.<br>
+      확인 후 <b>랜덤 배정</b>을 누르면 섞어서 1번부터 순서를 매겨요.<br>
       <b>그대로 저장</b>은 순서를 섞지 않고 지금 적힌 순서/내용 그대로 저장해요. (결석·조퇴 재배정 시 사용)
     </p>
+    <button id="btnLoadApplicants" type="button" style="width:100%; border:2.5px solid var(--line); border-radius:10px; padding:10px 12px; font-family:inherit; font-weight:800; font-size:13px; cursor:pointer; background:var(--purple); margin-bottom:12px;">📋 신청자 불러오기 (구글폼 연동)</button>
     <textarea id="nameInput" placeholder="예)&#10;홍길동&#10;김영희&#10;이철수"></textarea>
     <div class="admin-btns">
       <button id="btnShuffle" type="button">🎲 랜덤 배정</button>
@@ -306,7 +307,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
+import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
 
 /* ============================================================
    1) Firebase 설정 (jinro-2 프로젝트)
@@ -522,6 +523,32 @@ function saveList(list) {
     setAdminStatus('저장 실패: ' + err.message, true);
   });
 }
+
+document.getElementById('btnLoadApplicants').addEventListener('click', async () => {
+  if (!selectedClass) {
+    setAdminStatus('먼저 반을 선택해주세요.', true);
+    return;
+  }
+  if (!CONFIGURED) {
+    setAdminStatus('Firebase 설정이 필요해요.', true);
+    return;
+  }
+  try {
+    const snap = await get(ref(db, 'applicants/class' + selectedClass));
+    const val = snap.val();
+    if (!val) {
+      setAdminStatus('아직 신청자가 없어요.', true);
+      return;
+    }
+    const names = Object.values(val)
+      .sort((a, b) => (a.appliedAt || 0) - (b.appliedAt || 0))
+      .map(item => item.name);
+    document.getElementById('nameInput').value = names.join('\n');
+    setAdminStatus(`신청자 ${names.length}명 불러왔어요.`, false);
+  } catch (err) {
+    setAdminStatus('불러오기 실패: ' + err.message, true);
+  }
+});
 
 document.getElementById('btnShuffle').addEventListener('click', () => {
   const names = parseNames(document.getElementById('nameInput').value);
